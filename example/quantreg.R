@@ -1,3 +1,5 @@
+if (!require(pacman)) install.packages("pacman")
+
 pacman::p_load(quantreg, ggplot2)
 
 create_df <- function(n, std, add_outliers=FALSE) {
@@ -6,20 +8,20 @@ create_df <- function(n, std, add_outliers=FALSE) {
      x <- runif(n, 0, 7)
 
      y <- 100 - 27 * x + rnorm(n, sd = std)
-     
+
      flag <- rep("common", n)
-     
+
      if (add_outliers) {
        xout <- runif(3, 6, 7)
-       
+
        yout <- rnorm(3, 97)
-       
+
        flagout <- rep("outlier", 3)
-       
+
        x <- c(x, xout)
-       
+
        y <- c(y, yout)
-       
+
        flag <- c(flag, flagout)
      }
 
@@ -85,21 +87,37 @@ scatterplot_out <- ggplot(df_out, mapping = aes(x=x, y=y)) +
   theme(legend.position="none")
 
 scatterplot
+ggsave("example/img/scatter1.pdf")
+
 
 scatterplot +
   draw_vert_dist(1.5, lm_fit) +
   draw_vert_dist(3.5, lm_fit) +
   draw_vert_dist(5, lm_fit)
 
+ggsave("example/img/scatter2.pdf")
+
+
+
 scatterplot +
   geom_smooth(method=lm, se=FALSE, color="red")
+ggsave("example/img/scatter3.pdf")
+
 
 scatterplot +
   geom_smooth(method=lm, se=FALSE, color="red") +
   geom_quantile(quantiles=.5)
+ggsave("example/img/scatter4.pdf")
+
 
 scatterplot_out +
   geom_smooth(method = lm, se = FALSE, color = "red") +
   geom_quantile(quantiles=.5) +
   scale_color_manual(values=c("black", "red"))
-  
+ggsave("example/img/scatter5.pdf")
+
+scatterplot_out +
+  geom_smooth(method = lm, se = FALSE, color = "red") +
+  geom_quantile() +
+  scale_color_manual(values=c("black", "red"))
+ggsave("example/img/scatter6.pdf")
