@@ -17,3 +17,18 @@ get_upper_tri <- function(cormat){
   cormat[lower.tri(cormat)]<- NA
   return(cormat)
 }
+
+read_tbl_ft <- function(filename) {
+  ft <- fread(filename, select = select_columns)[ramo_justica == "Justiça do Trabalho"]
+
+  setnafill(
+    ft, fill=0,
+    cols = ft %>% colnames() %>%
+      (function(cols) cols[str_detect(cols, "ind") & !str_detect(cols, "max|min")])
+  )
+
+  ft[, formato := c("Eletrônico", "Físico", "Indisponível")[ifelse(id_formato < 1, 3, id_formato)]]
+
+  return(ft)
+}
+
