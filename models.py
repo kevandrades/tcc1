@@ -17,7 +17,7 @@ ft = (
     pl.read_csv(
         'data/ft_filtrado.csv',
         columns = (
-            'procedimento', 'formato', 'sigla_grau',
+            'procedimento', 'formato', 'sigla_grau', 'originario',
             *EXP_COLUMNS,
             'tramit_tmp'
         )
@@ -57,6 +57,8 @@ def cramer_v(dataset):
     return ((X2/N) / minimum_dimension)**(1/2)
 
 fmt_grau = st.fisher_exact(contingency("formato", "sigla_grau"))
+
+grau_orig = st.fisher_exact(contingency("originario", "sigla_grau"))
 
 fmt_prc = st.chi2_contingency(contingency("formato", "procedimento"))
 
