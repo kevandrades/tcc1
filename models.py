@@ -31,12 +31,7 @@ ft = (
     #    )
     #)
     .with_columns(c.procedimento.map_dict(PROCEDIMENTOS_ID))
-    #.filter(
-    #    fct.reduce(lambda x, y: x | y, [pl.col(column) < pl.quantile(column, .995) for column in ("ind5", "ind4", "ind6a", "ind8a", "ind9", "ind10")])
-    #)
-    #.to_dummies(columns=["sigla_grau", "formato", "procedimento"])
     .fill_null(0)
-    #.sample(997)
 )
 
 
@@ -72,7 +67,9 @@ prc_grau_ndrop = (
 )
 
 cramer_v(contingency("procedimento", "sigla_grau"))
-  
+
+ft = ft.to_dummies(columns=["sigla_grau", "formato", "procedimento"]).sample(997)
+ft.write_csv("dummied.csv")
   
 # Print the result
 
@@ -138,8 +135,9 @@ while True:
 
 
 EXP = ['sigla_grau_G1', 'procedimento_2', 'procedimento_5',
-       'procedimento_6', 'procedimento_7',# 'ind4', 'ind5', 'ind6a', 'ind8a',
-       #'ind9', 'ind10', 'ind11', 'ind13a', 'ind13b', 'ind24', 'ind25', 'ind26',
+       'procedimento_6', 'procedimento_7', 
+       'ind5', 'ind4', 'ind6a', 'ind8a',
+       'ind9', 'ind10', 'ind11', 'ind13a', 'ind13b', 'ind24', 'ind25', 'ind26',
        'formato_Eletrônico']
 
 final_formula = f'tramit_tmp ~ {" + ".join(EXP)}'
