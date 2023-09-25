@@ -7,7 +7,7 @@ servidores <- (
     [str_detect(sigla_tribunal, "TRT")]
 )
 
-ft <- fread("data/ft_filtrado.csv")
+ft <- fread("data/dummied.csv")
 
 ft[servidores, servidores := i.servidores, on=c("id_orgao_julgador", "sigla_tribunal")]
 
