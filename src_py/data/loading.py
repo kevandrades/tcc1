@@ -9,7 +9,7 @@ def read_data(filename, columns=FT_SELECT_COLUMNS):
     }
 
     df = (
-        pl.scan_csv(filename, null_values=["NA"], dtypes=DTYPES)
+        pl.scan_csv(filename, null_values=["NA"], ignore_errors = True, separator=";", dtypes=DTYPES)
         .select(columns)
         .filter(
             (c.ramo_justica == "Justiça do Trabalho") &

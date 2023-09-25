@@ -1,1 +1,3 @@
 *.eps
+env
+__pycache__
