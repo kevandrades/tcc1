@@ -1,4 +1,4 @@
-from src.data.maps import FT_SELECT_COLUMNS, ID_FORMATO, SIGLA_GRAU, ORIGINARIO, EXP_COLUMNS
+from .maps import FT_SELECT_COLUMNS, ID_FORMATO, SIGLA_GRAU, ORIGINARIO, EXP_COLUMNS
 from settings.generics import c
 import polars as pl
 
