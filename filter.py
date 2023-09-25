@@ -14,4 +14,8 @@ df = df.filter(
     (c.ind16_proc != 0)
 )
 
-df.write_csv("ft_filtrado.csv")
+df.write_csv("data/ft_filtrado.csv")
+
+df = df.to_dummies(columns=["sigla_grau", "formato", "procedimento"])
+
+df.write_csv("data/dummied.csv")
