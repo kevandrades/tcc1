@@ -2,14 +2,14 @@ from .maps import FT_SELECT_COLUMNS, ID_FORMATO, SIGLA_GRAU, ORIGINARIO, EXP_COL
 from settings.generics import c
 import polars as pl
 
-def read_data(filename, columns=FT_SELECT_COLUMNS):
-    DTYPES = {
-        "ultimo_dia": pl.Date,
-        **{ind: pl.Int64 for ind in EXP_COLUMNS}
-    }
+DTYPES = {
+    "ultimo_dia": pl.Date,
+    **{ind: pl.Int32 for ind in EXP_COLUMNS}
+}
 
+def read_data(filename, columns=FT_SELECT_COLUMNS, dtypes=DTYPES):
     df = (
-        pl.read_csv(filename, columns=columns, null_values=["NA"], ignore_errors = True, encoding="latin1", separator=";", dtypes=DTYPES)
+        pl.read_csv(filename, columns=columns, null_values=["NA"], ignore_errors = True, encoding="latin1", separator=";", dtypes=dtypes)
         .filter(
             (c.ramo_justica == "Justiça do Trabalho") &
             (c.id_formato.is_in((1, 2)))

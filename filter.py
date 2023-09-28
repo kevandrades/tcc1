@@ -1,12 +1,17 @@
-from src.data.loading import pl, c, DTYPES
+from src.data.loading import pl, c, DTYPES, read_data
 from src.data.maps import PROCEDIMENTOS_ID
 from datetime import date
 # -----------------------------------------------
 
 # 1. Lendo os dados
-filename = "data/tbl_ft_TRT.csv"
+filename = "data/tbl_fato_R.csv"
+
+df = read_data(filename)
 
 df = pl.read_csv(filename, dtypes=DTYPES, null_values=[""])
+
+
+df.write_csv("data/tbl_ft_TRT.csv")
 
 df = df.filter(
     (c.ultimo_dia == date(2023, 4, 30)) &
