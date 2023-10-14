@@ -22,7 +22,7 @@ df.write_csv("data/ft_filtrado.csv")
 
 df = (
     df.with_columns(pl.col("procedimento").map_dict(PROCEDIMENTOS_ID))
-    .to_dummies(columns=["sigla_grau", "formato", "procedimento"])
+    .to_dummies(columns=["sigla_grau", "formato", "procedimento"], drop_first=True)
     .with_columns([pl.col(column).fill_null(0)
         for column in EXP_COLUMNS
         if "ind" in column and "min" not in column and "max" not in column
