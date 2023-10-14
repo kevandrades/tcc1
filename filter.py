@@ -1,5 +1,5 @@
 from src.data.loading import pl, c, DTYPES, read_data
-from src.data.maps import PROCEDIMENTOS_ID, EXP_COLUMNS
+from src.data.maps import PROCEDIMENTOS_ID, NUM_EXP_COLUMNS
 from datetime import date
 # -----------------------------------------------
 
@@ -20,11 +20,32 @@ df = df.filter(
 
 df.write_csv("data/ft_filtrado.csv")
 
+
+infame_filter = (
+    df.filter(
+        ~(
+            (c.sigla_grau == "G1") & (
+                ((c.formato == "Eletrônico") & c.procedimento.is_in(("Execução extrajudicial não fiscal", "Execução fiscal"))) | 
+                c.procedimento.is_in(("Conhecimento não criminal", "Outros"))
+            )
+        )
+    )
+    .with_columns(pl.col("procedimento").map_dict(PROCEDIMENTOS_ID))
+    .to_dummies(columns=["sigla_grau", "formato", "procedimento"], drop_first=True)
+    .with_columns([pl.col(column).fill_null(0)
+        for column in NUM_EXP_COLUMNS
+        if "ind" in column and "min" not in column and "max" not in column
+    ])
+)
+
+infame_filter.write_csv("data/infame_filter.csv")
+
+
 df = (
     df.with_columns(pl.col("procedimento").map_dict(PROCEDIMENTOS_ID))
     .to_dummies(columns=["sigla_grau", "formato", "procedimento"], drop_first=True)
     .with_columns([pl.col(column).fill_null(0)
-        for column in EXP_COLUMNS
+        for column in NUM_EXP_COLUMNS
         if "ind" in column and "min" not in column and "max" not in column
     ])
 )
