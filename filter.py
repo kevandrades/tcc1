@@ -1,5 +1,5 @@
 from src.data.loading import pl, c, DTYPES, read_data
-from src.data.maps import PROCEDIMENTOS_ID
+from src.data.maps import PROCEDIMENTOS_ID, EXP_COLUMNS
 from datetime import date
 # -----------------------------------------------
 
@@ -23,6 +23,10 @@ df.write_csv("data/ft_filtrado.csv")
 df = (
     df.with_columns(pl.col("procedimento").map_dict(PROCEDIMENTOS_ID))
     .to_dummies(columns=["sigla_grau", "formato", "procedimento"])
+    .with_columns([pl.col(column).fill_null(0)
+        for column in EXP_COLUMNS
+        if "ind" in column and "min" not in column and "max" not in column
+    ])
 )
 
 df.write_csv("data/dummied.csv")
