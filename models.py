@@ -1,5 +1,5 @@
-from src_py.data.maps import PROCEDIMENTOS_ID, EXP_COLUMNS, EXP_LABELS
-from src_py.data.loading import read_data, c
+from src.data.maps import PROCEDIMENTOS_ID, EXP_COLUMNS, EXP_LABELS
+from src.data.loading import read_data, c
 import polars as pl
 from statsmodels.formula.api import quantreg
 from scipy import stats as st

@@ -1,6 +1,6 @@
 from settings.decorators import operate_lazily
-from src_py.data.loading import c
-from src_py.data.maps import COURT_STATES
+from src.data.loading import c
+from src.data.maps import COURT_STATES
 import polars as pl
 import scipy.stats as st
 
