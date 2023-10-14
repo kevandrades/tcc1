@@ -54,7 +54,9 @@ EXP_LABELS = {
 
 NUM_EXP_COLUMNS = tuple(EXP_LABELS.keys())
 
-CAT_EXP_COLUMNS = ['sigla_grau_G2', 'procedimento_1', 'procedimento_2', 'procedimento_6', 'procedimento_7', 'formato_Físico']
+CAT_EXP_COLUMNS = 'sigla_grau_G2', 'procedimento_1', 'procedimento_2', 'procedimento_6', 'procedimento_7', 'formato_Físico'
+
+EXP_COLUMNS = NUM_EXP_COLUMNS + CAT_EXP_COLUMNS
 
 FORMATTED_EXP_LABELS = {
     "ind5": "Tramitando",
