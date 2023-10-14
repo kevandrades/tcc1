@@ -1,6 +1,6 @@
 import polars as pl
-from src_py.data.loading import read_data, c
-from src_py.charts import (
+from src.data.loading import read_data, c
+from src.charts import (
     ts_fmt, dist_tramit_tmp, grau_tempo,
     fmt_tmp, originario_tempo,
     procedimento_tempo
