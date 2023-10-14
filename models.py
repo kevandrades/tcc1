@@ -1,4 +1,4 @@
-from src.data.maps import PROCEDIMENTOS_ID, EXP_COLUMNS, EXP_LABELS
+from src.data.maps import PROCEDIMENTOS_ID, NUM_EXP_COLUMNS, EXP_LABELS
 from src.data.loading import read_data, c
 import polars as pl
 from statsmodels.formula.api import quantreg
@@ -6,8 +6,8 @@ from scipy import stats as st
 import functools as fct
 
 
-EXP_COLUMNS = tuple(
-    column for column in EXP_COLUMNS if (
+NUM_EXP_COLUMNS = tuple(
+    column for column in NUM_EXP_COLUMNS if (
         "Decis" not in EXP_LABELS[column]
         or "Rec. Interno" not in EXP_LABELS[column]
     )
@@ -18,7 +18,7 @@ ft = (
         'data/ft_filtrado.csv',
         columns = (
             'procedimento', 'formato', 'sigla_grau', 'originario',
-            *EXP_COLUMNS,
+            *NUM_EXP_COLUMNS,
             'tramit_tmp'
         )
     )
@@ -75,7 +75,7 @@ ft.write_csv("dummied.csv")
 
 corrs = (
     pl.from_pandas(
-        ft.select(EXP_COLUMNS)
+        ft.select(NUM_EXP_COLUMNS)
         .to_pandas().corr()
         .melt(ignore_index=False)
         .reset_index()
@@ -145,7 +145,7 @@ final_model = quantreg(final_formula, data=ft).fit(q=quantile)
 ctgrc = ('sigla_grau_G1', 'procedimento_2', 'procedimento_5', 'procedimento_6', 'procedimento_7')
 
 
-for column in EXP_COLUMNS:
+for column in NUM_EXP_COLUMNS:
     all_cols = ctgrc + (column,)
     fml = f'tramit_tmp ~ {" + ".join(all_cols)}'
     print(column)

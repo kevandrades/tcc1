@@ -1,5 +1,5 @@
 from .data.loading import c
-from .data.maps import PROCEDIMENTOS_OUTPUT, PROCEDIMENTOS_ID, EXP_COLUMNS, EXP_LABELS
+from .data.maps import PROCEDIMENTOS_OUTPUT, PROCEDIMENTOS_ID, NUM_EXP_COLUMNS, EXP_LABELS
 import polars as pl
 from mizani.breaks import date_breaks
 from mizani.formatters import date_format
@@ -117,7 +117,7 @@ def procedimento_tempo(df):
 
 #def ind_sums(df):
 #    ind_sums = (
-#        df.select(EXP_COLUMNS).sum()
+#        df.select(NUM_EXP_COLUMNS).sum()
 #        .transpose(include_header=True)
 #        .rename({"column": "Indicador", "column_0": "Valor"})
 #        .sort("Valor")

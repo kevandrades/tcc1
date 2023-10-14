@@ -52,7 +52,9 @@ EXP_LABELS = {
     "ind26": "Rec. Interno Julgado"
 }
 
-EXP_COLUMNS = tuple(EXP_LABELS.keys())
+NUM_EXP_COLUMNS = tuple(EXP_LABELS.keys())
+
+CAT_EXP_COLUMNS = ['sigla_grau_G2', 'procedimento_1', 'procedimento_2', 'procedimento_6', 'procedimento_7', 'formato_Físico']
 
 FORMATTED_EXP_LABELS = {
     "ind5": "Tramitando",

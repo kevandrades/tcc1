@@ -1,10 +1,10 @@
-from .maps import FT_SELECT_COLUMNS, ID_FORMATO, SIGLA_GRAU, ORIGINARIO, EXP_COLUMNS
+from .maps import FT_SELECT_COLUMNS, ID_FORMATO, SIGLA_GRAU, ORIGINARIO, NUM_EXP_COLUMNS
 from settings.generics import c
 import polars as pl
 
 DTYPES = {
     "ultimo_dia": pl.Date,
-    **{ind: pl.Int32 for ind in EXP_COLUMNS}
+    **{ind: pl.Int32 for ind in NUM_EXP_COLUMNS}
 }
 
 def read_data(filename, columns=FT_SELECT_COLUMNS, dtypes=DTYPES):
