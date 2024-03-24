@@ -1,11 +1,12 @@
-BLOCKSIZE = 1024*1024
+BLOCKSIZE = 1024 * 1024
 
-filename = "data/tbl_fato_R.csv"
-out_filename = "data/tbl_fato_R_utf8.csv"
-
-with open(filename, 'rb') as inf:
-    with open(out_filename, 'wb') as ouf:
-        while True:
-            data = inf.read(BLOCKSIZE)
-            if not data: break
-            ouf.write(data.decode('latin1').encode('utf-8'))
+def latin1_to_utf8(filename, out_filename = None, blocksize = BLOCKSIZE):
+    if not out_filename:
+        out_filename = filename
+    
+    with open(filename, 'rb') as inf:
+        with open(out_filename, 'wb') as ouf:
+            while True:
+                data = inf.read(blocksize)
+                if not data: break
+                ouf.write(data.decode('latin1').encode('utf-8'))
