@@ -1,3 +1,7 @@
 *.eps
 env
 __pycache__
+data/tbl_ft_TRT.csv
+data/tbl_fato_R.csv
+data/tbl_fato_R.zip
+data/tbl_fato_R_utf8.csv
