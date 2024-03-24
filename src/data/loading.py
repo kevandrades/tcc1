@@ -16,7 +16,8 @@ def read_data(filename, columns=FT_SELECT_COLUMNS, dtypes=DTYPES):
         )
         .filter(
             (c.ramo_justica == "Justiça do Trabalho") &
-            c.id_formato.is_in((1, 2))
+            c.id_formato.is_in((1, 2)) &
+            ~c.ultimo_dia.is_null()
         )
         .with_columns(
             c.originario.replace(ORIGINARIO),
