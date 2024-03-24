@@ -1,2 +1,5 @@
 statsmodels
 polars
+pyarrow
+mizani
+plotnine
