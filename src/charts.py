@@ -14,7 +14,6 @@ def ts_fmt(df):
             (100 * (c.ind1 * (c.formato == "Físico")).sum() / c.ind1.sum()).alias("pct_fisicos"),
             (100 * (c.ind1 * (c.formato == "Físico"))).sum().alias("sum_fisicos")
         ])
-        .collect()
     )
 
     return (
@@ -95,11 +94,11 @@ def procedimento_tempo(df):
     return (
         ggplot(
             df.with_columns(
-                c.procedimento.map_dict(PROCEDIMENTOS_ID).alias("id_procedimento")
+                c.procedimento.replace(PROCEDIMENTOS_ID).alias("id_procedimento")
             )
             .sort("id_procedimento")
             .with_columns(
-                c.procedimento.map_dict(PROCEDIMENTOS_OUTPUT)
+                c.procedimento.replace(PROCEDIMENTOS_OUTPUT)
                 .cast(pl.Categorical).cat.set_ordering("physical")
             )
         ) +
@@ -112,7 +111,7 @@ def procedimento_tempo(df):
             panel_grid_minor_x = element_blank(),
             legend_position="bottom"
         ) +
-        guides(fill=None)
+        guides(fill=False)
     )
 
 #def ind_sums(df):
@@ -123,7 +122,7 @@ def procedimento_tempo(df):
 #        .sort("Valor")
 #        .with_columns(
 #            c.Indicador
-#            .map_dict(EXP_LABELS)
+#            .replace(EXP_LABELS)
 #            .cast(pl.Categorical)
 #            .cat.set_ordering("physical")
 #        )
