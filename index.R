@@ -1,7 +1,7 @@
 source("srcr/maps.R")
 pacman::p_load(data.table, tidyverse, magrittr, viridis, glue, xtable, gridExtra)
 
-ft <- fread("data/tbl_ft_TRT.csv")[!is.na(ultimo_dia)]
+ft <- fread("data/tbl_ft_TRT.csv")
 
 temporal_cn <- ft %>%
   group_by(ultimo_dia) %>%
