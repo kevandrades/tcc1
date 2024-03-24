@@ -1,4 +1,4 @@
-from src.data.maps import FT_SELECT_COLUMNS, ID_FORMATO, SIGLA_GRAU, ORIGINARIO, NUM_EXP_COLUMNS
+from .maps import FT_SELECT_COLUMNS, ID_FORMATO, SIGLA_GRAU, ORIGINARIO, NUM_EXP_COLUMNS
 from settings.generics import c
 import polars as pl
 
@@ -16,7 +16,7 @@ def read_data(filename, columns=FT_SELECT_COLUMNS, dtypes=DTYPES):
         )
         .filter(
             (c.ramo_justica == "Justiça do Trabalho") &
-            (c.id_formato.is_in((1, 2)))
+            c.id_formato.is_in((1, 2))
         )
         .with_columns(
             c.originario.replace(ORIGINARIO),
@@ -30,4 +30,3 @@ def read_data(filename, columns=FT_SELECT_COLUMNS, dtypes=DTYPES):
     )
 
     return df
-
