@@ -1,6 +1,7 @@
-source("src/loading.R")
+source("srcr/maps.R")
+pacman::p_load(data.table, tidyverse, magrittr, viridis, glue, xtable, gridExtra)
 
-ft <- read_tbl_ft("data/tbl_fato_R.csv")
+ft <- fread("data/tbl_ft_TRT.csv")[!is.na(ultimo_dia)]
 
 temporal_cn <- ft %>%
   group_by(ultimo_dia) %>%
@@ -22,7 +23,7 @@ ggplot(temporal_cn) +
   labs(x = "Data", y = "Casos Novos Físicos (%)")
 ggsave("img/pct_fisicos_tempo.pdf", scale=.9, width = 7, height = 4, limitsize=FALSE)
 
-ft <- ft[ultimo_dia == max(ultimo_dia)]
+ft <- fread("data/ft_filtrado.csv")
 
 pend_fisicos_eletronicos <- ft %>%
   filter(formato != "Indisponível") %>%
@@ -31,7 +32,7 @@ pend_fisicos_eletronicos <- ft %>%
   mutate(
     pend_pct = 100 * pend / sum(pend),
   ) %>%
-  as.data.table() %>%
+  as.data.table()
 
 qtd_varas <- ft %>%
   group_by(sigla_tribunal) %>%
@@ -47,11 +48,11 @@ qtd_varas <- ft %>%
   as.data.table()
 
 qtd_varas %>%
-  xtable()
+  xtable::xtable()
 
 qtd_varas[, sum(qtd)]
 
-tempo <- ft[, .(tempo = ind16_dias / ind16_proc)][!is.na(tempo)]
+tempo <- ft[, .(tempo = tramit_tmp)][!is.na(tempo)]
 
 resumo <- tempo %>%
   summary() %>%
@@ -60,7 +61,7 @@ resumo <- tempo %>%
 
 set.seed(299792458)
 normality_tests <- sapply(
-  1:10, function(index) ft[, ind16_dias / ind16_proc] %>%
+  1:10, function(index) ft[, tramit_tmp] %>%
     sample(size=1e3, replace=FALSE) %>%
     shapiro.test() %$% p.value
   )
@@ -68,7 +69,7 @@ normality_tests <- sapply(
 
 ggplot(ft,
     mapping = aes(
-      x = ind16_dias / ind16_proc,
+      x = tramit_tmp,
       y = after_stat(density),
       fill = 1
     )
@@ -89,7 +90,7 @@ ggsave("img/dist_tempo.pdf", width = 7, height = 4, limitsize=FALSE)
 
 ggplot(ft[formato!="Indisponível"]) +
   aes(
-    x = formato, y = ind16_dias / ind16_proc,
+    x = formato, y = tramit_tmp,
     fill = formato
   ) +
   geom_boxplot() +
@@ -105,7 +106,7 @@ ggsave("img/formato_tempo.pdf", width = 6, height = 3.75)
 ggplot(ft) +
   aes(
     x = c("G1" = "Primeiro Grau", "G2" = "Segundo Grau")[sigla_grau],
-    y = ind16_dias / ind16_proc,
+    y = tramit_tmp,
     fill = sigla_grau
   ) +
   geom_boxplot() +
@@ -124,7 +125,7 @@ ggplot(ft) +
     x = factor(
       c("Originário" = "Sim", "Recursal" = "Não")[originario],
       levels = c("Sim", "Não")
-    ), y = ind16_dias / ind16_proc,
+    ), y = tramit_tmp,
     fill=originario
   ) +
   geom_boxplot() +
@@ -161,7 +162,7 @@ chisq.test(as.matrix(as.data.table(originario_grau)[, .(Originário, Recursal)])
 procedimentos_tempos <- ft[, .(ind16 = sum(ind16_dias)), by=procedimento]
 
 ggplot(ft[!(procedimento %in% procedimentos_tempos[ind16==0, procedimento])]) +
-  aes(y = ind16_dias / ind16_proc, x = procedimentos_output[procedimento], fill = procedimento) +
+  aes(y = tramit_tmp, x = procedimentos_output[procedimento], fill = procedimento) +
   geom_boxplot() +
   labs(y = "Tempo de tramitação (dias)", x="", fill="") +
   scale_fill_viridis(discrete=TRUE) +
@@ -215,14 +216,14 @@ plot_point <- function(explicative, df = ft, filter = "#") {
         ggplot(a) +
           aes(
             x = as.integer({explicative}),
-            y = ind16_dias / ind16_proc
+            y = tramit_tmp
           ) +
           geom_point() +
           geom_quantile(quantiles=.5, linewidth=1) +
           geom_smooth(method = lm, color='#00822e', se=FALSE) +
           labs(y = '', x=explicative_labels['{explicative}']) +
           theme_classic() +
-          xlim(c(0, a[ind16_dias != 0][, max({explicative})]))
+          xlim(c(0, a[tramit_tmp != 0][, max({explicative})]))
     ")
   eval(
     parse(
@@ -235,7 +236,7 @@ chart <- do.call(
   function(...) grid.arrange(..., nrow=4),
   lapply(explicative_columns, plot_point)
 )
-
+  
 ggsave("img/cross_charts.png", chart, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
 
 chart_without_outliers <- do.call(
@@ -243,7 +244,7 @@ chart_without_outliers <- do.call(
   lapply(explicative_columns, function(explicative) plot_point(
     explicative, filter = glue(
       "({explicative} <= quantile({explicative}, .9995, na.rm = TRUE)) & (
-            (ind16_dias / ind16_proc) <= quantile(ind16_dias / ind16_proc, .97, na.rm=TRUE)
+            tramit_tmp <= quantile(tramit_tmp, .97, na.rm=TRUE)
         )"
     )
   ))
@@ -251,7 +252,23 @@ chart_without_outliers <- do.call(
 
 ggsave("img/cross_charts_without_outliers.png", chart_without_outliers, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
 
-pend_outl <- ft[ind2 < 120 & (ind16_dias / ind16_proc) > 1000] %>%
+infame <- fread("data/infame_filter.csv")
+
+chart_without_outliers_infame <- do.call(
+  function(...) grid.arrange(..., nrow=4),
+  lapply(explicative_columns, function(explicative) plot_point(
+    explicative, filter = glue(
+      "({explicative} <= quantile({explicative}, .997, na.rm = TRUE)) & (
+            tramit_tmp <= quantile(tramit_tmp, .99, na.rm=TRUE)
+        )"
+    ),
+    df = infame
+  ))
+)
+ggsave("img/infame_cross_charts_without_outliers.png", chart_without_outliers_infame, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
+
+
+pend_outl <- ft[(ind2 < 120) & (tramit_tmp > 1000)] %>%
   group_by(formato, sigla_grau, originario, procedimento) %>%
   summarise(n = n(), tempo = as.integer(sum(ind16_dias) / sum(ind16_proc))) %>%
   arrange(-n) %>%
