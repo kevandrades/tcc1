@@ -1,50 +1,48 @@
 from src.data.loading import pl, c, DTYPES, read_data
 from src.data.maps import PROCEDIMENTOS_ID, NUM_EXP_COLUMNS, EXP_COLUMNS
+from src.data.converters import latin1_to_utf8
 from datetime import date
+import os
+import re
 # -----------------------------------------------
 
 # 1. Lendo os dados
-filename = "data/tbl_fato_R.csv"
+if __name__ == "__main__":
+    latin1_filename = "data/tbl_fato_R.csv"
+    filename = "data/tbl_fato_R_utf8.csv"
+    
+    if os.path.isfile(latin1_filename) and not os.path.isfile(filename):
+        latin1_to_utf8(latin1_filename, filename)
 
-df = read_data(filename)
+    df = read_data(filename)
 
-df.write_csv("data/tbl_ft_TRT.csv")
+    df.write_csv("data/tbl_ft_TRT.csv")
 
-df = df.filter(
-    (c.ultimo_dia == date(2024, 1, 31)) &
-    (c.ind16_proc != 0)
-)
+    df = df.filter(
+        (c.ultimo_dia == date(2024, 1, 31)) & (c.ind16_proc != 0)
+    )
 
-df.write_csv("data/ft_filtrado.csv")
+    df.write_csv("data/ft_filtrado.csv")
 
-
-infame_filter = (
-    df.filter(
-        ~(
-            (c.sigla_grau == "G1") & (
-                ((c.formato == "Eletrônico") & c.procedimento.is_in(("Execução extrajudicial não fiscal", "Execução fiscal"))) | 
-                c.procedimento.is_in(("Conhecimento não criminal", "Outros"))
+    df = (
+        df.filter(
+            ~(
+                (c.sigla_grau == "G1") & (
+                    ((c.formato == "Eletrônico") & c.procedimento.is_in(("Execução extrajudicial não fiscal", "Execução fiscal"))) | 
+                    c.procedimento.is_in(("Conhecimento não criminal", "Outros"))
+                )
             )
         )
+        .with_columns(pl.col("procedimento").replace(PROCEDIMENTOS_ID))
+        .to_dummies(columns=["sigla_grau", "formato", "procedimento"], drop_first=True)
     )
-    .with_columns(pl.col("procedimento").replace(PROCEDIMENTOS_ID))
-    .to_dummies(columns=["sigla_grau", "formato", "procedimento"], drop_first=True)
-)
-infame_filter = infame_filter.select((
-    *(
-        column for column in infame_filter.columns
-        if column.split("_")[0] in {"sigla", "formato", "procedimento"}
-    ),
-    *NUM_EXP_COLUMNS,
-    "tramit_tmp"
-))
+    df = df.select((
+        *(
+            column for column in df.columns
+            if re.sub("_[^_]+$", "", column) in {"sigla_grau", "formato", "procedimento"}
+        ),
+        *NUM_EXP_COLUMNS,
+        "tramit_tmp"
+    ))
 
-infame_filter.write_csv("data/infame_filter.csv")
-
-
-df = (
-    df.with_columns(pl.col("procedimento").replace(PROCEDIMENTOS_ID))
-    .to_dummies(columns=["sigla_grau", "formato", "procedimento"], drop_first=True)
-)
-
-df.write_csv("data/dummied.csv")
+    df.write_csv("data/infame_filter.csv")
