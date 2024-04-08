@@ -34,7 +34,8 @@ FT_SELECT_COLUMNS = (
     "ind6a", "ind8a", "ind9", "ind10",
     "ind11", "ind13a", "ind13b",
     "ind24", "ind25", "ind26",
-    "ind16_dias", "ind16_proc"
+    "ind16_dias", "ind16_proc",
+    "ind18_dias", "ind18_proc"
 )
 
 EXP_LABELS = {
