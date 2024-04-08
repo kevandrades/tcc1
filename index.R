@@ -24,13 +24,13 @@ ggplot(temporal_cn) +
 ggsave("img/pct_fisicos_tempo.pdf", scale=.9, width = 7, height = 4, limitsize=FALSE)
 
 ft <- fread("data/ft_filtrado.csv")
-
+  
 pend_fisicos_eletronicos <- ft %>%
   filter(formato != "Indisponível") %>%
   group_by(formato) %>%
-  summarise(pend = sum(ind2)) %>%
+  summarise(tramit = sum(ind5, na.rm=T)) %>%
   mutate(
-    pend_pct = 100 * pend / sum(pend),
+    tramit_pct = 100 * tramit / sum(tramit, na.rm=T),
   ) %>%
   as.data.table()
 
@@ -52,7 +52,7 @@ qtd_varas %>%
 
 qtd_varas[, sum(qtd)]
 
-tempo <- ft[, .(tempo = tramit_tmp)][!is.na(tempo)]
+tempo <- ft[, .(tempo = bx_tmp)][!is.na(tempo)]
 
 resumo <- tempo %>%
   summary() %>%
@@ -61,7 +61,7 @@ resumo <- tempo %>%
 
 set.seed(299792458)
 normality_tests <- sapply(
-  1:10, function(index) ft[, tramit_tmp] %>%
+  1:10, function(index) ft[, bx_tmp] %>%
     sample(size=1e3, replace=FALSE) %>%
     shapiro.test() %$% p.value
   )
@@ -69,7 +69,7 @@ normality_tests <- sapply(
 
 ggplot(ft,
     mapping = aes(
-      x = tramit_tmp,
+      x = bx_tmp,
       y = after_stat(density),
       fill = 1
     )
@@ -90,7 +90,7 @@ ggsave("img/dist_tempo.pdf", width = 7, height = 4, limitsize=FALSE)
 
 ggplot(ft[formato!="Indisponível"]) +
   aes(
-    x = formato, y = tramit_tmp,
+    x = formato, y = bx_tmp,
     fill = formato
   ) +
   geom_boxplot() +
@@ -106,7 +106,7 @@ ggsave("img/formato_tempo.pdf", width = 6, height = 3.75)
 ggplot(ft) +
   aes(
     x = c("G1" = "Primeiro Grau", "G2" = "Segundo Grau")[sigla_grau],
-    y = tramit_tmp,
+    y = bx_tmp,
     fill = sigla_grau
   ) +
   geom_boxplot() +
@@ -125,7 +125,7 @@ ggplot(ft) +
     x = factor(
       c("Originário" = "Sim", "Recursal" = "Não")[originario],
       levels = c("Sim", "Não")
-    ), y = tramit_tmp,
+    ), y = bx_tmp,
     fill=originario
   ) +
   geom_boxplot() +
@@ -162,7 +162,7 @@ chisq.test(as.matrix(as.data.table(originario_grau)[, .(Originário, Recursal)])
 procedimentos_tempos <- ft[, .(ind16 = sum(ind16_dias)), by=procedimento]
 
 ggplot(ft[!(procedimento %in% procedimentos_tempos[ind16==0, procedimento])]) +
-  aes(y = tramit_tmp, x = procedimentos_output[procedimento], fill = procedimento) +
+  aes(y = bx_tmp, x = procedimentos_output[procedimento], fill = procedimento) +
   geom_boxplot() +
   labs(y = "Tempo de tramitação (dias)", x="", fill="") +
   scale_fill_viridis(discrete=TRUE) +
@@ -216,14 +216,14 @@ plot_point <- function(explicative, df = ft, filter = "#") {
         ggplot(a) +
           aes(
             x = as.integer({explicative}),
-            y = tramit_tmp
+            y = bx_tmp
           ) +
           geom_point() +
           geom_quantile(quantiles=.5, linewidth=1) +
           geom_smooth(method = lm, color='#00822e', se=FALSE) +
           labs(y = '', x=explicative_labels['{explicative}']) +
           theme_classic() +
-          xlim(c(0, a[tramit_tmp != 0][, max({explicative})]))
+          xlim(c(0, a[bx_tmp != 0][, max({explicative})]))
     ")
   eval(
     parse(
@@ -244,7 +244,7 @@ chart_without_outliers <- do.call(
   lapply(explicative_columns, function(explicative) plot_point(
     explicative, filter = glue(
       "({explicative} <= quantile({explicative}, .9995, na.rm = TRUE)) & (
-            tramit_tmp <= quantile(tramit_tmp, .97, na.rm=TRUE)
+            bx_tmp <= quantile(bx_tmp, .97, na.rm=TRUE)
         )"
     )
   ))
@@ -259,7 +259,7 @@ chart_without_outliers_infame <- do.call(
   lapply(explicative_columns, function(explicative) plot_point(
     explicative, filter = glue(
       "({explicative} <= quantile({explicative}, .997, na.rm = TRUE)) & (
-            tramit_tmp <= quantile(tramit_tmp, .99, na.rm=TRUE)
+            bx_tmp <= quantile(bx_tmp, .99, na.rm=TRUE)
         )"
     ),
     df = infame
@@ -268,7 +268,7 @@ chart_without_outliers_infame <- do.call(
 ggsave("img/infame_cross_charts_without_outliers.png", chart_without_outliers_infame, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
 
 
-pend_outl <- ft[(ind2 < 120) & (tramit_tmp > 1000)] %>%
+pend_outl <- ft[(ind2 < 120) & (bx_tmp > 1000)] %>%
   group_by(formato, sigla_grau, originario, procedimento) %>%
   summarise(n = n(), tempo = as.integer(sum(ind16_dias) / sum(ind16_proc))) %>%
   arrange(-n) %>%
