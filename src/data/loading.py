@@ -9,9 +9,10 @@ DTYPES = {
 
 def read_data(filename, columns=FT_SELECT_COLUMNS, dtypes=DTYPES):
     df = (
-        pl.scan_csv(
+        pl.read_csv(
             filename, null_values=["NA", ""],
-            ignore_errors = True, encoding="utf8",
+            columns=FT_SELECT_COLUMNS,
+            ignore_errors=True, encoding="utf8",
             separator=";", dtypes=dtypes
         )
         .filter(
@@ -25,9 +26,11 @@ def read_data(filename, columns=FT_SELECT_COLUMNS, dtypes=DTYPES):
             grau = c.sigla_grau.replace(SIGLA_GRAU),
             *(pl.col(column).fill_null(0) for column in NUM_EXP_COLUMNS + ('ind1', ))
         )
-        .with_columns(tramit_tmp = c.ind16_dias / c.ind16_proc)
-        .select((*columns, "tramit_tmp", "formato", "grau"))
-        .collect()
+        .with_columns(
+            bx_tmp = c.ind16_dias / c.ind16_proc,
+            tramit_tmp = c.ind18_dias / c.ind18_proc
+        )
+        .select((*columns, "bx_tmp", "tramit_tmp", "formato", "grau"))
     )
 
     return df
