@@ -9,7 +9,7 @@ import re
 # 1. Lendo os dados
 if __name__ == "__main__":
     latin1_filename = "data/tbl_fato_R.csv"
-    filename = "data/tbl_fato_R_utf8.csv"
+    filename = "data/tbl_fato_TRT.csv"
     
     if os.path.isfile(latin1_filename) and not os.path.isfile(filename):
         latin1_to_utf8(latin1_filename, filename)
@@ -42,6 +42,7 @@ if __name__ == "__main__":
             if re.sub("_[^_]+$", "", column) in {"sigla_grau", "formato", "procedimento"}
         ),
         *NUM_EXP_COLUMNS,
+        "bx_tmp",
         "tramit_tmp"
     ))
 
