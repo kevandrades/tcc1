@@ -1,5 +1,7 @@
 from .maps import FT_SELECT_COLUMNS, ID_FORMATO, SIGLA_GRAU, ORIGINARIO, NUM_EXP_COLUMNS
 from settings.generics import c
+from .converters import latin1_to_utf8
+import os
 import polars as pl
 
 DTYPES = {
@@ -7,11 +9,14 @@ DTYPES = {
     **{ind: pl.Int32 for ind in NUM_EXP_COLUMNS}
 }
 
-def read_data(filename, columns=FT_SELECT_COLUMNS, dtypes=DTYPES):
+def read_data(filename, latin1_filename, columns=FT_SELECT_COLUMNS, dtypes=DTYPES):
+    if not os.path.isfile(filename):
+        latin1_to_utf8(latin1_filename, filename)
+
     df = (
         pl.read_csv(
             filename, null_values=["NA", ""],
-            columns=FT_SELECT_COLUMNS,
+            columns=columns,
             ignore_errors=True, encoding="utf8",
             separator=";", dtypes=dtypes
         )
@@ -30,7 +35,8 @@ def read_data(filename, columns=FT_SELECT_COLUMNS, dtypes=DTYPES):
             bx_tmp = c.ind16_dias / c.ind16_proc,
             tramit_tmp = c.ind18_dias / c.ind18_proc
         )
-        .select((*columns, "bx_tmp", "tramit_tmp", "formato", "grau"))
     )
+
+    df.write_csv("data/tbl_ft_TRT.csv")
 
     return df
