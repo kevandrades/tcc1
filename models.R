@@ -1,60 +1,60 @@
 if (!require(pacman)) install.packages("pacman")
 pacman::p_load(data.table, tidyverse, tidymodels, quantreg, MASS, glue)
+options(scipen=999)
 
-set.seed(299792458)
-ft <- fread("data/infame_filter.csv") 
+ft <- fread("data/infame_filter.csv")
+ft[, tramit_tmp := NULL]
 
-ft_train <- ft %>%
+set.seed(pi); train_data <- ft %>%
     sample_n(2000)
 
-model_formula <- tramit_tmp ~ .
+fml <- bx_tmp ~ .
 
-quantiles <- list(.1, .25, .5, .75, .9)
+rq_selector <- function(fml, quantiles = list(.1, .25, .5, .75, .9), train_data = train_data) {
 
-rq_models <- list()
+  rq_models <- list()
 
-for (q in quantiles) {
-    model <- rq(model_formula, tau = q, data = ft_train)
-    step_selection <- stepAIC(model)
-    rq_models[[as.character(q)]] <- step_selection
+  for (q in quantiles) {
+      cat(glue("Quantile: {q}\n\n"))
+      model <- rq(fml, tau = q, data = train_data)
+      step_selection <- stepAIC(model)
+      rq_models[[as.character(q)]] <- step_selection
+  }
+
+  return(rq_models)
 }
 
-fit_inicial_lm <- lm(model_formula, data = ft_train)
+qr_linear <- rq_selector(fml = fml, train_data = train_data)
 
-lm_fit_slc <- stepAIC(fit_inicial_lm)
+variables <- dimnames(qr_linear[["0.5"]]$x)[[2]]
+numeric_cols <- variables[str_detect(variables, "ind")]
+nonumeric_cols <- setdiff(variables, numeric_cols); nonumeric_cols <- nonumeric_cols[!str_detect(nonumeric_cols, "Intercept")]
 
-rq_summaries <- list()
+fml_interactions <- as.formula(
+  glue("bx_tmp ~ {paste(nonumeric_cols, collapse = ' + ')} + {paste(numeric_cols, collapse = ' + ')} + {paste(combn(numeric_cols, 2, paste, collapse=':'), collapse=' + ')}")
+)
 
-for (quantile in names(rq_models)) rq_summaries[[quantile]] <- summary(rq_models[[quantile]])
+qr_inter <- rq_selector(fml = fml_interactions, quantiles = list(.5))
+ selecionado: bx_tmp ~ sigla_grau_G2 + procedimento_6 + ind5 + 
+    ind4 + ind6a + ind8a + ind9 + ind10 + ind11 + ind13a + ind13b + 
+    ind24 + ind25 + ind26 + ind5:ind4 + ind5:ind8a + ind5:ind9 + 
+    ind5:ind11 + ind5:ind13a + ind5:ind24 + ind5:ind25 + ind4:ind8a + 
+    ind4:ind11 + ind4:ind13a + ind4:ind13b + ind6a:ind9 + ind6a:ind13a + 
+    ind6a:ind13b + ind8a:ind9 + ind8a:ind10 + ind8a:ind11 + ind8a:ind13a + 
+    ind8a:ind13b + ind9:ind10 + ind9:ind13a + ind9:ind25 + ind10:ind24 + 
+    ind10:ind25 + ind11:ind25 + ind13a:ind13b + ind13a:ind24 + 
+    ind13a:ind26 + ind13b:ind26 + ind24:ind25
 
-# função oriunda da biblioteca regclass
-VIF <- function (mod) {
-  if (any(is.na(coef(mod)))) 
-    stop("there are aliased coefficients in the model")
-  v <- vcov(mod)
-  assign <- attr(model.matrix(mod), "assign")
-  if (names(coefficients(mod)[1]) == "(Intercept)") {
-    v <- v[-1, -1]
-    assign <- assign[-1]
-  }
-  else warning("No intercept: vifs may not be sensible.")
-  terms <- labels(terms(mod))
-  n.terms <- length(terms)
-  if (n.terms < 2) 
-    stop("model contains fewer than 2 terms")
-  R <- cov2cor(v)
-  detR <- det(R)
-  result <- matrix(0, n.terms, 3)
-  rownames(result) <- terms
-  colnames(result) <- c("GVIF", "Df", "GVIF^(1/(2*Df))")
-  for (term in 1:n.terms) {
-    subs <- which(assign == term)
-    result[term, 1] <- det(as.matrix(R[subs, subs])) * det(as.matrix(R[-subs, 
-                                                                       -subs]))/detR
-    result[term, 2] <- length(subs)
-  }
-  if (all(result[, 2] == 1)) 
-    result <- result[, 1]
-  else result[, 3] <- result[, 1]^(1/(2 * result[, 2]))
-  result
-}
+qr_inter <- rq(bx_tmp ~ sigla_grau_G2 + procedimento_6 + ind5 + 
+    ind4 + ind6a + ind8a + ind9 + ind10 + ind11 + ind13a + ind13b + 
+    ind24 + ind25 + ind26,# + ind5:ind4 + ind5:ind8a + ind5:ind9 + 
+    #ind5:ind11 + ind5:ind13a + ind5:ind24 + ind5:ind25 + ind4:ind8a + 
+    #ind4:ind11 + ind4:ind13a + ind4:ind13b + ind6a:ind9 + ind6a:ind13a + 
+    #ind6a:ind13b + ind8a:ind9 + ind8a:ind10 + ind8a:ind11 + ind8a:ind13a + 
+    #ind8a:ind13b + ind9:ind10 + ind9:ind13a + ind9:ind25 + ind10:ind24 + 
+    #ind10:ind25 + ind11:ind25 + ind13a:ind13b + ind13a:ind24 + 
+    #ind13a:ind26 + ind13b:ind26 + ind24:ind25,
+    tau = .5, data = train_data)
+
+lr_linear <- stepAIC(lm(fml, data = train_data))
+lr_inter <- stepAIC(lm(fml_interactions, data = train_data))
