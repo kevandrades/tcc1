@@ -23,10 +23,6 @@ df = pl.read_csv(
 #ts_fmt(df, "ind1").save("img/py/pct_fisicos_tempo.pdf", width = 7, height = 4, limitsize=False)
 
 #ts_fmt(df, "ind5").save("img/py/pct_fisicos_tramitando_tempo.pdf", width=7, height=4, limitsize=False)
-# _______________________________
-# 2.3 Tempo de tramitação por formato
-
-fmt_tmp(df).save("img/py/formato_tempo.pdf", width = 6, height = 3.75)
 
 # _______________________________
 # 2.2 Distribuição do tempo de tramitação
@@ -45,6 +41,12 @@ df = pl.read_csv("data/ft_filtrado.csv")
 )
 
 dist_bx_tmp(df).save("img/py/dist_tempo.pdf", width = 7, height = 4, limitsize=False)
+
+# _______________________________
+# 2.3 Tempo de tramitação por formato
+
+fmt_tmp(df).save("img/py/formato_tempo.pdf", width = 6, height = 3.75)
+
 
 # _______________________________
 # 2.4 Tempo de tramitação por grau
