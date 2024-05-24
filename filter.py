@@ -1,8 +1,6 @@
-from src.data.loading import pl, c, DTYPES, read_data
-from src.data.maps import PROCEDIMENTOS_ID, NUM_EXP_COLUMNS, EXP_COLUMNS
-from src.data.converters import latin1_to_utf8
+from src.data.loading import pl, c, read_data
+from src.data.maps import PROCEDIMENTOS_ID, NUM_EXP_COLUMNS
 from datetime import date
-import os
 import re
 # -----------------------------------------------
 
@@ -10,13 +8,8 @@ import re
 if __name__ == "__main__":
     latin1_filename = "data/tbl_fato_R.csv"
     filename = "data/tbl_fato_TRT.csv"
-    
-    if os.path.isfile(latin1_filename) and not os.path.isfile(filename):
-        latin1_to_utf8(latin1_filename, filename)
 
-    df = read_data(filename)
-
-    df.write_csv("data/tbl_ft_TRT.csv")
+    df = read_data(filename=filename, latin1_filename=latin1_filename)
 
     df = df.filter(
         (c.ultimo_dia == date(2024, 1, 31)) & (c.ind16_proc != 0)
