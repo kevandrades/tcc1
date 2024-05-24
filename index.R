@@ -1,8 +1,16 @@
 source("srcr/maps.R")
 pacman::p_load(data.table, tidyverse, magrittr, viridis, glue, xtable, gridExtra)
-
+theme_set(theme_bw())
 ft <- fread("data/tbl_ft_TRT.csv")
 
+ft[, procedimento := factor(procedimento,
+    levels=c(
+      "Conhecimento criminal", "Conhecimento não criminal",
+      "Execução extrajudicial não fiscal", "Execução fiscal",
+      "Execução judicial", "Pré-processual", "Outros"
+    )
+  )
+]
 temporal_cn <- ft %>%
   group_by(ultimo_dia) %>%
   summarise(
@@ -24,7 +32,7 @@ ggplot(temporal_cn) +
 ggsave("img/pct_fisicos_tempo.pdf", scale=.9, width = 7, height = 4, limitsize=FALSE)
 
 ft <- fread("data/ft_filtrado.csv")
-  
+
 pend_fisicos_eletronicos <- ft %>%
   filter(formato != "Indisponível") %>%
   group_by(formato) %>%
@@ -47,7 +55,7 @@ qtd_varas <- ft %>%
   ) %>%
   as.data.table()
 
-qtd_varas %>%
+qtd_varas[, .(sigla_tribunal, Estado, qtd, pct)] %>%
   xtable::xtable()
 
 qtd_varas[, sum(qtd)]
@@ -122,14 +130,11 @@ ggsave("img/grau_tempo.pdf", width = 6, height = 3.75)
 
 ggplot(ft) +
   aes(
-    x = factor(
-      c("Originário" = "Sim", "Recursal" = "Não")[originario],
-      levels = c("Sim", "Não")
-    ), y = bx_tmp,
+    x = factor(originario, levels = c("Sim", "Não")), y = bx_tmp,
     fill=originario
   ) +
   geom_boxplot() +
-  scale_fill_viridis(discrete=TRUE, begin = .2, end=.6) +
+  scale_fill_viridis(discrete=TRUE, begin = .6, end=.2) +
   guides(fill=FALSE) +
   ylim(c(0, 1500)) +
   theme(
@@ -140,32 +145,41 @@ ggplot(ft) +
 ggsave("img/originario.pdf", width = 6, height = 3.75)
 
 
-originario_grau <- ft[, sum(ind2), by=.(sigla_grau, originario)] %>%
+originario_grau <- ft[, sum(ind2, na.rm=T), by=.(sigla_grau, originario)] %>%
   pivot_wider(names_from = originario, values_from = V1) %>%
   mutate(
-    originario_pct = 1000 * Originário / (Originário + Recursal),
+    originario_pct = 1000 * Sim / (Sim + Não),
     recursal_pct = 1000 - originario_pct
   )
 
 originario_grau %>%
   mutate(
-    Originário = paste(Originário, " (", round(originario_pct, 2), "‰)", sep=""),
-    Recursal = paste(Recursal, " (", round(recursal_pct, 2), "‰)", sep="")
+    Originário = paste(Sim, " (", round(originario_pct, 2), "‰)", sep=""),
+    Recursal = paste(Não, " (", round(recursal_pct, 2), "‰)", sep="")
   ) %>%
-  select(Grau = sigla_grau, Originário, Recursal) %>%
+  select(Grau = sigla_grau, Sim, Não) %>%
   as.data.table() %>%
   xtable()
 
-chisq.test(as.matrix(as.data.table(originario_grau)[, .(Originário, Recursal)]))
-  
-  
-procedimentos_tempos <- ft[, .(ind16 = sum(ind16_dias)), by=procedimento]
+chisq.test(as.matrix(as.data.table(originario_grau)[, .(Sim, Não)]))
 
-ggplot(ft[!(procedimento %in% procedimentos_tempos[ind16==0, procedimento])]) +
+procedimento_formato <- originario_grau <- ft[, sum(ind2, na.rm=T), by=.(procedimento, formato)] %>%
+  pivot_wider(names_from = originario, values_from = V1) %>%
+  mutate(
+    originario_pct = 1000 * Sim / (Sim + Não),
+    recursal_pct = 1000 - originario_pct
+  )
+
+
+  
+procedimentos_tempos <- ft[, .(procedimento = factor(procedimento, levels=c("Conhecimento criminal", "Conhecimento não criminal", "Execução extrajudicial não fiscal", "Execução fiscal", "Execução judicial", "Pré-processual", "Outros")), ind16 = sum(ind16_dias)), by=procedimento]
+
+ggplot(ft) +
   aes(y = bx_tmp, x = procedimentos_output[procedimento], fill = procedimento) +
   geom_boxplot() +
   labs(y = "Tempo de tramitação (dias)", x="", fill="") +
   scale_fill_viridis(discrete=TRUE) +
+  theme_bw() +
   theme(#axis.title.x=element_blank(),
         #axis.text.x=element_blank(),
         #axis.ticks.x=element_blank(),
@@ -196,6 +210,7 @@ ggplot(ind_sums) +
   labs(x = "Quantitativo de Processos", y = "Indicador") +
   guides(fill=F) +
   scale_fill_viridis_d(begin=0, end=.7) +
+  theme_bw() +
   theme(
     axis.text.x=element_blank(),
     axis.ticks.x=element_blank(),
@@ -208,7 +223,7 @@ ggplot(ind_sums) +
 ggsave("img/inds_qtd.pdf", width = 7, height = 4, limitsize=FALSE)
 
 
-plot_point <- function(explicative, df = ft, filter = "#") {
+plot_point <- function(explicative, df = ft, filter = "#", y="bx_tmp") {
   expr <- glue("
         a <- df[
           {filter}
@@ -216,14 +231,14 @@ plot_point <- function(explicative, df = ft, filter = "#") {
         ggplot(a) +
           aes(
             x = as.integer({explicative}),
-            y = bx_tmp
+            y = {y}
           ) +
           geom_point() +
           geom_quantile(quantiles=.5, linewidth=1) +
           geom_smooth(method = lm, color='#00822e', se=FALSE) +
           labs(y = '', x=explicative_labels['{explicative}']) +
           theme_classic() +
-          xlim(c(0, a[bx_tmp != 0][, max({explicative})]))
+          xlim(c(0, a[{y} != 0][, max({explicative})]))
     ")
   eval(
     parse(
@@ -236,7 +251,15 @@ chart <- do.call(
   function(...) grid.arrange(..., nrow=4),
   lapply(explicative_columns, plot_point)
 )
-  
+
+standardize <- function(x) {
+  xbar <- mean(x, na.rm=T)
+
+  S <- sd(x, na.rm=T)
+
+  return((x - xbar) / S)
+}
+
 ggsave("img/cross_charts.png", chart, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
 
 chart_without_outliers <- do.call(
@@ -254,7 +277,7 @@ ggsave("img/cross_charts_without_outliers.png", chart_without_outliers, scale=1,
 
 infame <- fread("data/infame_filter.csv")
 
-chart_without_outliers_infame <- do.call(
+chart_infame <- do.call(
   function(...) grid.arrange(..., nrow=4),
   lapply(explicative_columns, function(explicative) plot_point(
     explicative, filter = glue(
@@ -267,6 +290,18 @@ chart_without_outliers_infame <- do.call(
 )
 ggsave("img/infame_cross_charts_without_outliers.png", chart_without_outliers_infame, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
 
+chart_infame_standardized <- do.call(
+  function(...) grid.arrange(..., nrow=4),
+  lapply(glue("standardize({explicative_columns})"), function(explicative) plot_point(
+    explicative, filter = glue(
+      "(standardize({explicative}) <= quantile(standardize({explicative}), .997, na.rm = TRUE)) & (
+            bx_tmp <= quantile(bx_tmp, .99, na.rm=TRUE)
+        )"
+    ),
+    df = infame
+  ))
+)
+ggsave("img/infame_cross_charts_standardized.png", chart_infame_standardized, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
 
 pend_outl <- ft[(ind2 < 120) & (bx_tmp > 1000)] %>%
   group_by(formato, sigla_grau, originario, procedimento) %>%
@@ -284,7 +319,6 @@ corr_matrix <- do.call(
   as.data.table() %>%
   cor() %>%
   round(2) %>%
-  get_lower_tri() %>%
   melt(na.rm = TRUE) %>%
   mutate(Var2 = factor(Var2)) %>%
   mutate(Var1 = factor(Var1, rev(levels(Var2))))
