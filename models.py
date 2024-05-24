@@ -5,41 +5,14 @@ from statsmodels.formula.api import quantreg
 from scipy import stats as st
 import functools as fct
 
-
-NUM_EXP_COLUMNS = tuple(
-    column for column in NUM_EXP_COLUMNS if (
-        "Decis" not in EXP_LABELS[column]
-        or "Rec. Interno" not in EXP_LABELS[column]
-    )
-)
-
-ft = (
-    pl.read_csv(
-        'data/ft_filtrado.csv',
-        columns = (
-            'procedimento', 'formato', 'sigla_grau', 'originario',
-            *NUM_EXP_COLUMNS,
-            'tramit_tmp'
-        )
-    )
-    #.filter(
-    #    ~(
-    #        (c.sigla_grau == "G1") & (
-    #            ((c.formato == "Eletrônico") & c.procedimento.is_in(("Execução extrajudicial não fiscal", "Execução fiscal"))) | 
-    #            c.procedimento.is_in(("Conhecimento não criminal", "Outros"))
-    #        )
-    #    )
-    #)
-    .with_columns(c.procedimento.map_dict(PROCEDIMENTOS_ID))
-    .fill_null(0)
-)
+ft = pl.read_csv('data/ft_filtrado.csv')
 
 
 def contingency(column1, column2, df=ft):
     return (
         df.group_by([column1, column2])
-        .agg(pl.count())
-        .pivot("count", column1, column2)
+        .agg(pl.len())
+        .pivot("len", column1, column2)
         .fill_null(0)
         .drop(columns=[column1, column2])
     )
@@ -51,13 +24,22 @@ def cramer_v(dataset):
   
     return ((X2/N) / minimum_dimension)**(1/2)
 
+{
+    "prc_grau": st.chi2_contingency(contingency("procedimento", "sigla_grau")).pvalue,
+    "proc_orig": st.chi2_contingency(contingency("originario", "procedimento")).pvalue,
+    "fmt_prc": st.chi2_contingency(contingency("formato", "procedimento")).pvalue,
+    "fmt_grau": st.fisher_exact(contingency("formato", "sigla_grau")).pvalue,
+    "fmt_orig": st.fisher_exact(contingency("formato", "originario")).pvalue,
+    "grau_orig": st.fisher_exact(contingency("originario", "sigla_grau")).pvalue,
+}
+
 fmt_grau = st.fisher_exact(contingency("formato", "sigla_grau"))
 
 grau_orig = st.fisher_exact(contingency("originario", "sigla_grau"))
 
-fmt_prc = st.chi2_contingency(contingency("formato", "procedimento"))
+fmt_prc = st.fisher_exact(contingency("formato", "procedimento"))
 
-prc_grau = st.chi2_contingency(contingency("procedimento", "sigla_grau"))
+prc_grau = st.fisher_exact(contingency("procedimento", "sigla_grau"))
 
 prc_grau_ndrop = (
     ft.group_by(["procedimento", "sigla_grau"])
@@ -67,9 +49,6 @@ prc_grau_ndrop = (
 )
 
 cramer_v(contingency("procedimento", "sigla_grau"))
-
-ft = ft.to_dummies(columns=["sigla_grau", "formato", "procedimento"]).sample(997)
-ft.write_csv("dummied.csv")
   
 # Print the result
 
@@ -117,9 +96,9 @@ while True:
     best_model = None
 
     # Tente adicionar uma variável
-    for var in ('formato_Eletrônico', 'formato_Físico', 'sigla_grau_G1', 'sigla_grau_G2', 'procedimento_2', 'procedimento_5', 'procedimento_6', 'procedimento_7', 'ind4', 'ind5', 'ind6a', 'ind8a', 'ind9', 'ind10', 'ind11', 'ind13a', 'ind13b', 'ind24', 'ind25', 'ind26'):
+    for var in ft.drop("bx_tmp").columns:
         print(var)
-        formula = f'tramit_tmp ~ {" + ".join(selected_vars + [var])}'
+        formula = f'bx_tmp ~ {" + ".join(selected_vars + [var])}'
         model = quantreg(formula, data=ft).fit(q=quantile)
         aic = model.aic
 
@@ -140,14 +119,14 @@ EXP = ['sigla_grau_G1', 'procedimento_2', 'procedimento_5',
        'ind9', 'ind10', 'ind11', 'ind13a', 'ind13b', 'ind24', 'ind25', 'ind26',
        'formato_Eletrônico']
 
-final_formula = f'tramit_tmp ~ {" + ".join(EXP)}'
+final_formula = f'bx_tmp ~ {" + ".join(EXP)}'
 final_model = quantreg(final_formula, data=ft).fit(q=quantile)
 ctgrc = ('sigla_grau_G1', 'procedimento_2', 'procedimento_5', 'procedimento_6', 'procedimento_7')
 
 
 for column in NUM_EXP_COLUMNS:
     all_cols = ctgrc + (column,)
-    fml = f'tramit_tmp ~ {" + ".join(all_cols)}'
+    fml = f'bx_tmp ~ {" + ".join(all_cols)}'
     print(column)
     quantreg(fml, ft).fit(q=quantile).summary()
 
