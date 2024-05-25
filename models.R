@@ -33,7 +33,7 @@ model_to_df <- function(model) {
     "procedimento_7" = "Procedimento 7",
     "formato_Físico" = "Formato",
     "ind8a" = "Julgamentos",
-    "ind13a" = "Liminares deferidas",
+    "ind13a" = "Liminares indeferidas",
     "ind26" = "Rec. Interno Julgado",
     "ind5" = "Tramitando", 
     "ind9" = "Despachos",
@@ -51,22 +51,25 @@ model_to_df <- function(model) {
   tbl <- model %>%
     summary() %>%
     coefficients() %>%
-    as.data.frame() %>%
-    dplyr::select(`Coeficiente` = Value, `Erro Padrão` = `Std. Error`, `Significância` = `Pr(>|t|)`) %>%
+    as.data.frame()
+  
+  tbl %>%
     mutate(
-      `Erro Padrão` = case_when(
-        `Erro Padrão` > 99999 ~ formatC(`Erro Padrão`),
-        TRUE ~ as.character(round(`Erro Padrão`, 3))
+      `Std. Error` = case_when(
+        `Std. Error` > 99999 ~ formatC(`Std. Error`),
+        TRUE ~ as.character(round(`Std. Error`, 3))
       ),
-      `Coeficiente` = case_when(
-        `Coeficiente` > 99999 ~ formatC(`Coeficiente`),
-        TRUE ~ as.character(round(`Coeficiente`, 3))
-      )
-    )
-    rownames(tbl) <- renames[rownames(tbl)] %>% unname
-    tbl %>%
+      Value = case_when(
+        Value > 99999 ~ formatC(Value),
+        TRUE ~ as.character(round(Value, 3))
+      ),
+      Variável = renames[rownames(tbl)]
+    ) %>%
+    dplyr::select(Variável, Coeficiente = Value, `Erro Padrão` = `Std. Error`, Significância = `Pr(>|t|)`) %>%
     xtable::xtable(
-      caption = paste("Modelo de regressão quantílica selecionado por Stepwise para o quantil de", tau)
+      caption = paste("Modelo de regressão quantílica selecionado por Stepwise para o quantil de", tau),
+      align = "cc|cc|c",
+      label=paste0("tab:quantreg_woutinter_", tau)
     )
 }
 
@@ -76,7 +79,7 @@ textbls_wout_inter <- qr_linear %>%
   lapply(model_to_df)
   
 for (tbl in textbls_wout_inter) {
-  print(tbl, caption.placement = "top")
+  print(tbl, caption.placement = "top", include.rownames=F, table.placement="H")
 }
 
 variables <- dimnames(qr_linear[["0.5"]]$x)[[2]]
