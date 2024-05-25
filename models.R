@@ -24,7 +24,7 @@ rq_selector <- function(fml, quantiles = c(.1, .25, .5, .75, .9), train_data = t
   return(rq_models)
 }
 
-model_to_df <- function(model) {
+model_to_df <- function(model, caption, label) {
   renames <- c(
     "(Intercept)" = "Intercepto",
     "sigla_grau_G2" = "Grau",
@@ -48,6 +48,8 @@ model_to_df <- function(model) {
   )
   tau <- with(model, tau)
 
+  caption <- paste(caption, tau)
+
   tbl <- model %>%
     summary() %>%
     coefficients() %>%
@@ -67,24 +69,36 @@ model_to_df <- function(model) {
     ) %>%
     dplyr::select(Variável, Coeficiente = Value, `Erro Padrão` = `Std. Error`, Significância = `Pr(>|t|)`) %>%
     xtable::xtable(
-      caption = paste("Modelo de regressão quantílica selecionado por Stepwise para o quantil de", tau),
+      caption = caption,
       align = "cc|cc|c",
-      label=paste0("tab:quantreg_woutinter_", tau)
+      label=paste0(label, tau)
     )
 }
 
 qr_linear <- rq_selector(fml = fml, train_data = train_data)
 
 textbls_wout_inter <- qr_linear %>%
-  lapply(model_to_df)
+  lapply(function(model) model_to_df(model, caption = "Modelo de regressão quantílica selecionado por Stepwise para o quantil de", label = "tab:quantreg_woutinter_"))
   
 for (tbl in textbls_wout_inter) {
   print(tbl, caption.placement = "top", include.rownames=F, table.placement="H")
 }
 
-variables <- dimnames(qr_linear[["0.5"]]$x)[[2]]
-numeric_cols <- variables[str_detect(variables, "ind")]
-nonumeric_cols <- setdiff(variables, numeric_cols); nonumeric_cols <- nonumeric_cols[!str_detect(nonumeric_cols, "Intercept")]
+
+qr_median_reduced <- rq(
+  bx_tmp ~ sigla_grau_G2 + procedimento_2 + procedimento_6 + procedimento_7 + formato_Físico + ind5 + ind4 + ind10 + ind9 + ind6a,
+  tau = .5,
+  data = train_data
+)
+
+print(model_to_df(
+    qr_median_reduced,
+    caption = "Modelo de regressão quantílica com variáveis mais significantes para o quantil de",
+    label = "tab:quantreg_reduce_"),
+  caption.placement = "top",
+  include.rownames=F,
+  table.placement="H"
+)
 
 fml_interactions <- as.formula(
   glue("bx_tmp ~ {paste(nonumeric_cols, collapse = ' + ')} + {paste(numeric_cols, collapse = ' + ')} + {paste(combn(numeric_cols, 2, paste, collapse=':'), collapse=' + ')}")
