@@ -1,6 +1,6 @@
 if (!require(pacman)) install.packages("pacman")
 pacman::p_load(data.table, tidyverse, tidymodels, quantreg, MASS, glue)
-options(scipen=999)
+options(scipen=6, OutDec=",")
 
 ft <- fread("data/infame_filter.csv")
 ft[, tramit_tmp := NULL]
@@ -10,7 +10,7 @@ set.seed(pi); train_data <- ft %>%
 
 fml <- bx_tmp ~ .
 
-rq_selector <- function(fml, quantiles = list(.1, .25, .5, .75, .9), train_data = train_data) {
+rq_selector <- function(fml, quantiles = c(.1, .25, .5, .75, .9), train_data = train_data) {
 
   rq_models <- list()
 
@@ -24,7 +24,60 @@ rq_selector <- function(fml, quantiles = list(.1, .25, .5, .75, .9), train_data 
   return(rq_models)
 }
 
+model_to_df <- function(model) {
+  renames <- c(
+    "(Intercept)" = "Intercepto",
+    "sigla_grau_G2" = "Grau",
+    "procedimento_2" = "Procedimento 2",
+    "procedimento_6" = "Procedimento 6",
+    "procedimento_7" = "Procedimento 7",
+    "formato_Físico" = "Formato",
+    "ind8a" = "Julgamentos",
+    "ind13a" = "Liminares deferidas",
+    "ind26" = "Rec. Interno Julgado",
+    "ind5" = "Tramitando", 
+    "ind9" = "Despachos",
+    "ind13b" = "Liminares deferidas",    
+    "bx_tmp" = "Tempo até a baixa",
+    "ind4" = "Suspensos e Sobrestados",
+    "ind10" = "Decisões",
+    "ind24"  = "Casos Novos de Rec. Interno",
+    "ind6a" = "Conclusos",
+    "ind11" = "Audiências",
+    "ind25" = "Rec. Interno Pendente"
+  )
+  tau <- with(model, tau)
+
+  tbl <- model %>%
+    summary() %>%
+    coefficients() %>%
+    as.data.frame() %>%
+    dplyr::select(`Coeficiente` = Value, `Erro Padrão` = `Std. Error`, `Significância` = `Pr(>|t|)`) %>%
+    mutate(
+      `Erro Padrão` = case_when(
+        `Erro Padrão` > 99999 ~ formatC(`Erro Padrão`),
+        TRUE ~ as.character(round(`Erro Padrão`, 3))
+      ),
+      `Coeficiente` = case_when(
+        `Coeficiente` > 99999 ~ formatC(`Coeficiente`),
+        TRUE ~ as.character(round(`Coeficiente`, 3))
+      )
+    )
+    rownames(tbl) <- renames[rownames(tbl)] %>% unname
+    tbl %>%
+    xtable::xtable(
+      caption = paste("Modelo de regressão quantílica selecionado por Stepwise para o quantil de", tau)
+    )
+}
+
 qr_linear <- rq_selector(fml = fml, train_data = train_data)
+
+textbls_wout_inter <- qr_linear %>%
+  lapply(model_to_df)
+  
+for (tbl in textbls_wout_inter) {
+  print(tbl, caption.placement = "top")
+}
 
 variables <- dimnames(qr_linear[["0.5"]]$x)[[2]]
 numeric_cols <- variables[str_detect(variables, "ind")]
