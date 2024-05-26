@@ -16,7 +16,7 @@ qr_linear <- with(list(), {
 
 map(qr_linear,
     ~model_to_df(.,
-        caption = "Modelo de regressão quantílica ($\\tau$ = {tau}) selecionado por {italic_stepwise}",
+        caption = "Regressão quantílica ($\\tau$ = {tau}) selecionado por {italic_stepwise}",
         label = "tab:qr_woutinter_"
     )
 )
