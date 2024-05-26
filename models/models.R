@@ -8,8 +8,8 @@ ft[, tramit_tmp := NULL]
 set.seed(pi); train_data <- ft %>%
     sample_n(2000)
 
-model_to_df <- function(model, caption, label) {
-  renames <- c(
+
+renames <- c(
     "\\(Intercept\\)" = "Intercepto",
     "sigla_grau_G2" = "Grau",
     'procedimento_1' = 'Procedimento - Conhecimento criminal',
@@ -34,6 +34,8 @@ model_to_df <- function(model, caption, label) {
     "ind11" = "Audiências",
     "ind25" = "Rec. Interno Pendente"
   )
+
+qr_model_to_df <- function(model, caption, label) {
   tau <- with(model, as.character(tau))
 
   tbl <- model %>%
@@ -73,3 +75,29 @@ model_to_df <- function(model, caption, label) {
 }
 
 italic_stepwise <- "\\textit{stepwise}"
+
+gr_model_to_df <- function(model, caption, label) {
+  tbl <- model %>%
+    summary() %>%
+    coefficients() %>%
+    as.data.frame()
+  
+  rows <- rownames(tbl)
+
+  for (name in names(renames)) {
+    rows <- str_replace_all(rows, name, renames[name] %>% unname())
+  }
+  
+  tbl %>%
+    mutate(
+      Variável = rows
+    ) %>%
+    dplyr::select(Variável, Coeficiente = Estimate, `Erro Padrão` = `Std. Error`, `P-valor` = `Pr(>|t|)`) %>%
+    xtable::xtable(
+      caption = caption,
+      align = "cc|cc|c",
+      label = label,
+      digits = 3
+    ) %>%
+    print(caption.placement = "top", include.rownames=F, table.placement="H", floating.environment = "modelo")
+}
