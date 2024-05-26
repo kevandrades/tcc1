@@ -101,3 +101,5 @@ gr_model_to_df <- function(model, caption, label) {
     ) %>%
     print(caption.placement = "top", include.rownames=F, table.placement="H", floating.environment = "modelo")
 }
+
+stepwiseAIC <- function(..., direction = "both") MASS::stepAIC(..., direction=direction)
