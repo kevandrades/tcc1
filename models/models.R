@@ -36,8 +36,6 @@ model_to_df <- function(model, caption, label) {
   )
   tau <- with(model, as.character(tau))
 
-  caption <- glue(caption) %>% as.character()
-
   tbl <- model %>%
     summary() %>%
     coefficients() %>%
@@ -48,6 +46,9 @@ model_to_df <- function(model, caption, label) {
   for (name in names(renames)) {
     rows <- str_replace_all(rows, name, renames[name] %>% unname())
   }
+
+  label <- paste0(label, tau)
+  caption <- glue(caption) %>% as.character()
   
   tbl %>%
     mutate(
@@ -65,10 +66,10 @@ model_to_df <- function(model, caption, label) {
     xtable::xtable(
       caption = caption,
       align = "cc|cc|c",
-      label=paste0(label, tau),
-      digits=3
+      label = label,
+      digits = 3
     ) %>%
-    print(caption.placement = "top", include.rownames=F, table.placement="H")
+    print(caption.placement = "top", include.rownames=F, table.placement="H", floating.environment = "modelo")
 }
 
 italic_stepwise <- "\\textit{stepwise}"
