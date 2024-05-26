@@ -14,11 +14,9 @@ qr_linear <- with(list(), {
     qr_linear
 })
 
-map(qr_linear,
-    ~model_to_df(.,
-        caption = "Regressão quantílica ($\\tau$ = {tau}) selecionado por {italic_stepwise}",
-        label = "tab:qr_woutinter_"
-    )
+for (model in qr_linear) qr_model_to_df(model,
+    caption = "Regressão quantílica ($\\tau$ = {tau}) selecionado por {italic_stepwise}",
+    label = "tab:qr_woutinter_"
 )
 
 qr_median_nonlinear <- rq(
