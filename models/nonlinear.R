@@ -5,6 +5,6 @@ qr_nonlinear <- rq(bx_tmp ~ ind5 + ind4 + ind10 + ind9 + ind6a + ind8a + I(ind11
     stepwiseAIC()
 
 qr_nonlinear %>% qr_model_to_df(
-    caption="Regressão quantílica ($\\tau$ = {tau}) com variáveis expressões quadráticas e seleção {italic_stepwise}",
+    caption="Regressão quantílica ($\\tau$ = {tau}) com expressões quadráticas e seleção {italic_stepwise}",
     label="tab:qr_median_nonlinear_"
 )
