@@ -15,7 +15,7 @@ qr_median_reduced_inter <- rq(
 
 qr_median_reduced_inter_step <- stepAIC(qr_median_reduced_inter, direction="both")
 
-print(model_to_df(
+print(qr_model_to_df(
     qr_median_reduced_inter,
     caption = "Regressão quantílica ($\\tau$ = {tau}) com interações e seleção automática",
     label = "tab:qr_median_interactions_"
@@ -26,7 +26,7 @@ print(model_to_df(
 )
 
 
-print(model_to_df(
+print(qr_model_to_df(
     qr_median_reduced_inter_step,
     caption = "Regressão quantílica ($\\tau$ = {tau}) com variáveis significativas e Formato removido",
     label = "tab:qr_median_reduced_inter_step_"),
@@ -39,7 +39,7 @@ print(model_to_df(
 qr_median_interactions <- rq(fml_interactions, tau = .5, data = train_data) 
 
 
-print(model_to_df(
+print(qr_model_to_df(
     qr_median_interactions,
     caption = "Regressão quantílica ($\\tau$ = {tau}) com interações",
     label = "tab:qr_"),
