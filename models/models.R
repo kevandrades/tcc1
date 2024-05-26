@@ -7,7 +7,7 @@ ft[, tramit_tmp := NULL]
 
 set.seed(pi); train_data <- ft %>%
     sample_n(2000)
-
+test_data <- fsetdiff(ft, train_data, all = TRUE)
 
 renames <- c(
     "\\(Intercept\\)" = "Intercepto",
