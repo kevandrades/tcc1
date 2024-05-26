@@ -1,8 +1,10 @@
 source("models/models.R")
 
-numeric_cols <- with(qr_median_reduced, colnames(x) %>% .[str_detect(., "ind")])
+categorical_cols <- c("sigla_grau_G2", "procedimento_2", "procedimento_6", "procedimento_7", "formato_Físico")
 
-qr_median_reduced_inter <- rq(
+numeric_cols <- c("ind5", "ind4", "ind10", "ind9", "ind6a")
+
+qr_median_inter <- rq(
   as.formula(
     glue(
       "bx_tmp ~ sigla_grau_G2 + procedimento_6 +
@@ -11,59 +13,10 @@ qr_median_reduced_inter <- rq(
     )
   ),
   tau = .5, data = train_data
-)
+) %>% stepwiseAIC(direction="both")
 
-qr_median_reduced_inter_step <- stepAIC(qr_median_reduced_inter, direction="both")
-
-print(qr_model_to_df(
-    qr_median_reduced_inter,
+qr_model_to_df(
+    qr_median_inter,
     caption = "Regressão quantílica ($\\tau$ = {tau}) com interações e seleção automática",
     label = "tab:qr_median_interactions_"
-  ),
-  caption.placement = "top",
-  include.rownames=F,
-  table.placement="H"
-)
-
-
-print(qr_model_to_df(
-    qr_median_reduced_inter_step,
-    caption = "Regressão quantílica ($\\tau$ = {tau}) com variáveis significativas e Formato removido",
-    label = "tab:qr_median_reduced_inter_step_"),
-  caption.placement = "top",
-  include.rownames=F,
-  table.placement="H"
-)
-
-
-qr_median_interactions <- rq(fml_interactions, tau = .5, data = train_data) 
-
-
-print(qr_model_to_df(
-    qr_median_interactions,
-    caption = "Regressão quantílica ($\\tau$ = {tau}) com interações",
-    label = "tab:qr_"),
-  caption.placement = "top",
-  include.rownames=F,
-  table.placement="H"
-)
-
-qr_median_interactions <- stepAIC(rq(fml_interactions, tau = .5, data = train_data), direction = "both")
-
-
-qr_inter <- rq(fml_interactions, tau = .5, data = train_data) %>% stepAIC()
-
-
-qr_inter <- rq(bx_tmp ~ sigla_grau_G2 + procedimento_6 + ind5 + 
-    ind4 + ind6a + ind8a + ind9 + ind10 + ind11 + ind13a + ind13b + 
-    ind24 + ind25 + ind26,# + ind5:ind4 + ind5:ind8a + ind5:ind9 + 
-    #ind5:ind11 + ind5:ind13a + ind5:ind24 + ind5:ind25 + ind4:ind8a + 
-    #ind4:ind11 + ind4:ind13a + ind4:ind13b + ind6a:ind9 + ind6a:ind13a + 
-    #ind6a:ind13b + ind8a:ind9 + ind8a:ind10 + ind8a:ind11 + ind8a:ind13a + 
-    #ind8a:ind13b + ind9:ind10 + ind9:ind13a + ind9:ind25 + ind10:ind24 + 
-    #ind10:ind25 + ind11:ind25 + ind13a:ind13b + ind13a:ind24 + 
-    #ind13a:ind26 + ind13b:ind26 + ind24:ind25,
-    tau = .5, data = train_data)
-
-lr_linear <- stepAIC(lm(fml, data = train_data))
-lr_inter <- stepAIC(lm(fml_interactions, data = train_data))
+  )
