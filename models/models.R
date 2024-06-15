@@ -65,12 +65,16 @@ qr_model_to_df <- function(model, add.tau = FALSE) {
         abs(Value) > 10 ~ round(Value, 0),
         TRUE ~ round(Value, 3)
       ),
+      `P-valor` = case_when(
+        `Pr(>|t|)` < 0.001 ~ "<0.001",
+        TRUE ~ as.character(round(`Pr(>|t|)`, 3))
+      ),
       Variável = case_when(
         !str_detect(rownames(tbl), ":") ~ renames[rownames(tbl)],
         TRUE ~ strsplit(rownames(tbl), ":") %>% lapply(function(x) renames[x] %>% paste(collapse=":")) %>% unlist()
       )
     ) %>%
-    dplyr::select(Variável, Coeficiente = Value, `Erro Padrão` = `Std. Error`, Significância = `Pr(>|t|)`)
+    dplyr::select(Variável, Coeficiente = Value, `Erro Padrão` = `Std. Error`, `P-valor`)
   
   if (add.tau) {
     tbl <- tbl %>%
@@ -96,7 +100,14 @@ qr_model_to_xtable <- function(model, caption, label) {
 
 italic_stepwise <- "\\textit{stepwise}"
 
-gr_model_to_df <- function(model, caption, label) {
+
+round_formatter <- function(x) case_when(
+  abs(x) > 1 ~ as.character(as.integer(x)),
+  abs(x) < .001 ~ formatC(x, format="e", digits=3),
+  TRUE ~ as.character(round(x, 3))
+)
+
+gr_model_to_df <- function(model, caption, label, digits=3) {
   tbl <- model %>%
     summary() %>%
     coefficients() %>%
@@ -110,16 +121,35 @@ gr_model_to_df <- function(model, caption, label) {
   
   tbl %>%
     mutate(
-      Variável = rows
+      Variável = rows,
+      `P-valor` = case_when(
+        `Pr(>|t|)` < 0.001 ~ "\approx 0",
+        TRUE ~ as.character(round(`Pr(>|t|)`, 3))
+      ),
+      `Erro Padrão` = round_formatter(`Std. Error`),
+      Coeficiente = round_formatter(Estimate),
     ) %>%
-    dplyr::select(Variável, Coeficiente = Estimate, `Erro Padrão` = `Std. Error`, `P-valor` = `Pr(>|t|)`) %>%
+    dplyr::select(
+      Variável,
+      Coeficiente,
+      `Erro Padrão`,
+      `P-valor`
+    ) %>%
     xtable::xtable(
       caption = caption,
       align = "cc|cc|c",
       label = label,
-      digits = 3
+      digits = digits
     ) %>%
     print(caption.placement = "top", include.rownames=F, table.placement="H", floating.environment = "modelo")
 }
 
+
 stepAIC <- stepwiseAIC <- function(..., direction = "both") MASS::stepAIC(..., direction=direction)
+
+bic_estimate <- function(model) {
+    lls <- stats4::logLik(model)
+    nos <- with(model, nrow(x))
+    
+    -2 * as.numeric(lls) + log(nos) * attr(lls, "df")
+}

@@ -13,13 +13,6 @@ bic_nonlinear <- c()
 rho_linear <- c()
 rho_nonlinear <- c()
 
-bic_estimate <- function(model) {
-    lls <- stats4::logLik(model)
-    nos <- with(model, nrow(x))
-    
-    -2 * as.numeric(lls) + log(nos) * attr(lls, "df")
-}
-
 for (tau in quantiles) {
     mdl1 <- candidate1(tau)
     mdl2 <- candidate2(tau, mdl1)
