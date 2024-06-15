@@ -3,3 +3,5 @@ polars
 pyarrow
 mizani
 plotnine
+scipy
+numpy
