@@ -252,28 +252,20 @@ chart <- do.call(
   lapply(explicative_columns, plot_point)
 )
 
-standardize <- function(x) {
-  xbar <- mean(x, na.rm=T)
-
-  S <- sd(x, na.rm=T)
-
-  return((x - xbar) / S)
-}
-
 ggsave("img/cross_charts.png", chart, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
 
 chart_without_outliers <- do.call(
   function(...) grid.arrange(..., nrow=4),
   lapply(explicative_columns, function(explicative) plot_point(
     explicative, filter = glue(
-      "({explicative} <= quantile({explicative}, .9995, na.rm = TRUE)) & (
+      "({explicative} <= quantile({explicative}, .995, na.rm = TRUE)) & (
             bx_tmp <= quantile(bx_tmp, .97, na.rm=TRUE)
         )"
     )
   ))
 )
 
-ggsave("img/cross_charts_without_outliers.png", chart_without_outliers, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
+ggsave("img/cross_charts_without_outliers.png", chart_without_outliers, scale=1, width = 8.5, height = 10, limitsize=FALSE)
 
 infame <- fread("data/infame_filter.csv")
 
@@ -288,20 +280,7 @@ chart_infame <- do.call(
     df = infame
   ))
 )
-ggsave("img/infame_cross_charts_without_outliers.png", chart_without_outliers_infame, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
-
-chart_infame_standardized <- do.call(
-  function(...) grid.arrange(..., nrow=4),
-  lapply(glue("standardize({explicative_columns})"), function(explicative) plot_point(
-    explicative, filter = glue(
-      "(standardize({explicative}) <= quantile(standardize({explicative}), .997, na.rm = TRUE)) & (
-            bx_tmp <= quantile(bx_tmp, .99, na.rm=TRUE)
-        )"
-    ),
-    df = infame
-  ))
-)
-ggsave("img/infame_cross_charts_standardized.png", chart_infame_standardized, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
+ggsave("img/cross_charts_without_outliers.png", chart_infame, scale=1, width = 8.1, height = 10.8, limitsize=FALSE)
 
 pend_outl <- ft[(ind2 < 120) & (bx_tmp > 1000)] %>%
   group_by(formato, sigla_grau, originario, procedimento) %>%
@@ -310,7 +289,8 @@ pend_outl <- ft[(ind2 < 120) & (bx_tmp > 1000)] %>%
   as.data.table()
 
 pend_outl %>%
-  xtable()
+  xtable(caption = 'Características das varas com menos de 120 processos tramitando e mais de 1.000 dias de tempo até a baixa',
+  label = 'tbl:caracteristicas_pendentes_tempo_longo')
 
 corr_matrix <- do.call(
   function(...) select(ft, ...),
