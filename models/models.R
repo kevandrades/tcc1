@@ -1,16 +1,17 @@
 if (!require(pacman)) install.packages("pacman")
-pacman::p_load(MASS, data.table, quantreg, purrr, glue, tidyverse, tidymodels)
+if (!require(MASS)) install.packages("MASS")
+pacman::p_load(data.table, quantreg, purrr, glue, tidyverse, tidymodels)
 options(scipen=6, OutDec=",")
 
 ft <- fread("data/infame_filter.csv")
 ft[, tramit_tmp := NULL]
 
-set.seed(pi); train_data <- ft %>%
-    sample_n(2000)
-test_data <- fsetdiff(ft, train_data, all = TRUE)
+set.seed(pi); train_data <- ft #%>%
+    #sample_n(.8 * n())
+#test_data <- fsetdiff(ft, train_data, all = TRUE)
 
 renames <- c(
-    "\\(Intercept\\)" = "Intercepto",
+    "(Intercept)" = "Intercepto",
     "sigla_grau_G2" = "Grau",
     'procedimento_1' = 'Procedimento - Conhecimento criminal',
     'procedimento_2' = 'Procedimento - Conhecimento não criminal',
@@ -35,11 +36,11 @@ renames <- c(
     "ind25" = "Rec. Interno Pendente"
   )
 
-qr_model_to_df <- function(model, caption, label) {
-  tau <- with(model, as.character(tau))
+qr_model_to_df <- function(model, add.tau = FALSE) {
+  tau <- with(model, tau)
 
   tbl <- model %>%
-    summary() %>%
+    summary(se = "boot") %>%
     coefficients() %>%
     as.data.frame()
   
@@ -49,10 +50,7 @@ qr_model_to_df <- function(model, caption, label) {
     rows <- str_replace_all(rows, name, renames[name] %>% unname())
   }
 
-  label <- paste0(label, tau)
-  caption <- glue(caption) %>% as.character()
-  
-  tbl %>%
+  tbl <- tbl %>%
     mutate(
       `Std. Error` = case_when(
         `Std. Error` > 99999 ~ formatC(`Std. Error`),
@@ -62,16 +60,33 @@ qr_model_to_df <- function(model, caption, label) {
         Value > 99999 ~ formatC(Value),
         TRUE ~ as.character(round(Value, 3))
       ),
-      Variável = rows
+      Variável = case_when(
+        !str_detect(rownames(tbl), ":") ~ renames[rownames(tbl)],
+        TRUE ~ strsplit(rownames(tbl), ":") %>% lapply(function(x) renames[x] %>% paste(collapse=":")) %>% unlist()
+      )
     ) %>%
-    dplyr::select(Variável, Coeficiente = Value, `Erro Padrão` = `Std. Error`, `P-valor` = `Pr(>|t|)`) %>%
+    dplyr::select(Variável, Coeficiente = Value, `Erro Padrão` = `Std. Error`, Significância = `Pr(>|t|)`)
+  
+  if (add.tau) {
+    tbl <- tbl %>%
+      mutate(tau = tau)
+  }
+
+  tbl[]
+}
+
+qr_model_to_xtable <- function(model, caption, label) {
+
+  tau <- with(model, tau)
+
+  caption <- paste(caption, tau)
+
+  qr_model_to_df(model) %>%
     xtable::xtable(
       caption = caption,
       align = "cc|cc|c",
-      label = label,
-      digits = 3
-    ) %>%
-    print(caption.placement = "top", include.rownames=F, table.placement="H", floating.environment = "modelo")
+      label=paste0(label, tau)
+    )
 }
 
 italic_stepwise <- "\\textit{stepwise}"
@@ -102,4 +117,4 @@ gr_model_to_df <- function(model, caption, label) {
     print(caption.placement = "top", include.rownames=F, table.placement="H", floating.environment = "modelo")
 }
 
-stepwiseAIC <- function(..., direction = "both") MASS::stepAIC(..., direction=direction)
+stepAIC <- stepwiseAIC <- function(..., direction = "both") MASS::stepAIC(..., direction=direction)
