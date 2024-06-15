@@ -28,7 +28,7 @@ renames <- c(
     "ind9" = "Despachos",
     "ind13b" = "Liminares deferidas",    
     "bx_tmp" = "Tempo até a baixa",
-    "ind4" = "Suspensos e Sobrestados",
+    "ind4" = "Suspensos",
     "ind10" = "Decisões",
     "ind24"  = "Casos Novos de Rec. Interno",
     "ind6a" = "Conclusos",
@@ -57,8 +57,13 @@ qr_model_to_df <- function(model, add.tau = FALSE) {
         TRUE ~ as.character(round(`Std. Error`, 3))
       ),
       Value = case_when(
-        Value > 99999 ~ formatC(Value),
-        TRUE ~ as.character(round(Value, 3))
+        #Value > 99999 ~ formatC(Value),
+        #TRUE ~ as.character(round(Value, 3))
+        #Value > 99999 ~ Value,
+        #TRUE ~ Value
+        abs(Value) < .001 ~ round(Value, 4),
+        abs(Value) > 10 ~ round(Value, 0),
+        TRUE ~ round(Value, 3)
       ),
       Variável = case_when(
         !str_detect(rownames(tbl), ":") ~ renames[rownames(tbl)],

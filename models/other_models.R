@@ -7,21 +7,18 @@ quantiles <- c(.1, .25, .5, .75, .9)
 final <- tibble(Variável = "Intercepto")
 
 aic_linear <- c()
-aic_nonlinear <- c()
+aic_nonlinear <- c()    
 bic_linear <- c()
 bic_nonlinear <- c()
 rho_linear <- c()
 rho_nonlinear <- c()
 
-bic_estimate <- function(object) {
-#    ll   <- if(isNamespaceLoaded("stats4")) stats4::logLik else logLik
-    
-    lls <- stats4::logLik(object)
-    nos <- with(object, nrow(x))
+bic_estimate <- function(model) {
+    lls <- stats4::logLik(model)
+    nos <- with(model, nrow(x))
     
     -2 * as.numeric(lls) + log(nos) * attr(lls, "df")
 }
-
 
 for (tau in quantiles) {
     mdl1 <- candidate1(tau)
@@ -60,7 +57,7 @@ sort_vars <- c(
     "Procedimento - Pré-processual",
     "Procedimento - Outros",
     "Tramitando",
-    "Suspensos e Sobrestados",
+    "Suspensos",
     "Despachos",
     "Decisões",
     "Conclusos",
@@ -70,21 +67,22 @@ sort_vars <- c(
     "Rec. Interno Pendente",
     "Despachos:Liminares indeferidas",
     "Liminares indeferidas:Julgamentos",
-    "Suspensos e Sobrestados:Decisões",
+    "Suspensos:Decisões",
     "Rec. Interno Pendente:Julgamentos",
     "Julgamentos:Tramitando",
-    "Suspensos e Sobrestados:Rec. Interno Julgado",
-    "Suspensos e Sobrestados:Conclusos",
+    "Suspensos:Rec. Interno Julgado",
+    "Suspensos:Conclusos",
     "Tramitando:Suspensos e Sobrestados",
     "Rec. Interno Pendente:Conclusos",
-    "Suspensos e Sobrestados:Despachos",
+    "Suspensos:Despachos",
     "Tramitando:Despachos",
-    "Suspensos e Sobrestados:Tramitando"
+    "Suspensos:Tramitando"
 )
 
 final <- final %>%
     mutate(Variável = factor(final$Variável, levels=sort_vars)) %>%
-    arrange(Variável)
+    arrange(Variável) %>%
+    mutate_if(is.numeric, function(x) round(x, 4))
 
 nvars <- final %>% select(-Variável) %>% (function(x) !is.na(x)) %>% colSums()
 
@@ -137,5 +135,15 @@ final %>%
 
 final %>%
     select(Variável, `1 (tau = 0,1)`, `1 (tau = 0,25)`, `1 (tau = 0,5)`, `2 (tau = 0,75)`, `2 (tau = 0,9)`) %>%
-    xtable::xtable(digits=3) %>%
-    print(digits=3)
+    dplyr::filter(
+        !is.na(`1 (tau = 0,1)`) |
+        !is.na(`1 (tau = 0,25)`) |
+        !is.na(`1 (tau = 0,5)`) |
+        !is.na(`2 (tau = 0,75)`) |
+        !is.na(`2 (tau = 0,9)`)
+    ) %>%
+    as.data.frame() %>%    
+    xtable::xtable(digits=4) %>%
+    print(digits=4, include.rownames=FALSE)
+
+

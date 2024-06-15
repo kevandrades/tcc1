@@ -40,7 +40,7 @@ FT_SELECT_COLUMNS = (
 
 EXP_LABELS = {
     "ind5": "Tramitando",
-    "ind4": "Suspensos e Sobrestados",
+    "ind4": "Suspensos",
     "ind6a": "Conclusos",
     "ind8a": "Julgamentos",
     "ind9": "Despachos",

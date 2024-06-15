@@ -39,7 +39,7 @@ select_columns <- c(
 
 explicative_labels <- c(
   "ind5" = "Tramitando",
-  "ind4" = "Suspensos e Sobrestados",
+  "ind4" = "Suspensos",
   "ind6a" = "Conclusos",
   "ind8a" = "Julgamentos",
   "ind9" = "Despachos",
