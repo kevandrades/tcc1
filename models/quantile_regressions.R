@@ -1,6 +1,29 @@
 source("models/models.R")
 source("models/selector.R")
-options(scipen=6, OutDec=",")
+
+options(
+  scipen=6,
+  OutDec=",",
+  xtable.sanitize.colnames.function = function(x) paste("\\textbf{", x, "}", sep = "")
+)
+
+mdian_mdl1 <- candidate1(tau)
+mdian_mdl2 <- candidate2(tau, mdian_mdl1)
+
+qr_model_to_xtable(
+    mdian_mdl1,
+    caption = "Regressão gaussiana com seleção \\textit{stepwise} usando AIC",
+    label = "tab:gr_selection"
+)
+
+data.frame(
+    mdl = glue::glue("Modelo {c(1, 2)}"),
+    AIC = c(AIC(mdian_mdl1), AIC(mdian_mdl2)),
+    BIC = c(bic_estimate(mdian_mdl1), bic_estimate(mdian_mdl2)),
+    Perda = c(with(mdian_mdl1, rho), with(mdian_mdl2, rho))
+) %>%
+xtable::xtable() %>%
+print(include.rownames=FALSE)
 
 quantiles <- c(.1, .25, .5, .75, .9)
 
@@ -13,9 +36,14 @@ bic_nonlinear <- c()
 rho_linear <- c()
 rho_nonlinear <- c()
 
+confints <- list()
+
 for (tau in quantiles) {
     mdl1 <- candidate1(tau)
     mdl2 <- candidate2(tau, mdl1)
+
+    confints[[paste(1, tau)]] <- with(mdl1, boot.rq(x, y, tau = tau))
+    confints[[paste(1, tau)]] <- with(mdl2, boot.rq(x, y, tau = tau))
 
     aic_linear <- c(aic_linear, AIC(mdl1))
     aic_nonlinear <- c(aic_nonlinear, AIC(mdl2))
@@ -23,7 +51,6 @@ for (tau in quantiles) {
     bic_nonlinear <- c(bic_nonlinear, bic_estimate(mdl2))
     rho_linear <- c(rho_linear, with(mdl1, rho))
     rho_nonlinear <- c(rho_nonlinear, with(mdl2, rho))
-    
 
     mdl1_df <- qr_model_to_df(mdl1) %>%
         select(Variável, Coeficiente) %>%
