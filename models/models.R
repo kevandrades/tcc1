@@ -103,12 +103,12 @@ qr_model_to_xtable <- function(model, caption, label) {
       align = "cc|cc|c",
       label=paste0(label, tau)
     ) %>%
-    print(include.rownames=FALSE)
+    print(include.rownames=FALSE, sanitize.text.function = identity)
 }
 
 italic_stepwise <- "\\textit{stepwise}"
 
-gr_model_to_df <- function(model, caption, label, digits=3) {
+gr_model_to_df <- function(model) {
   tbl <- model %>%
     summary() %>%
     coefficients() %>%
@@ -124,7 +124,7 @@ gr_model_to_df <- function(model, caption, label, digits=3) {
     mutate(
       Variável = rows,
       `P-valor` = case_when(
-        `Pr(>|t|)` < 0.001 ~ "\approx 0",
+        `Pr(>|t|)` < 0.001 ~ "\\approx 0",
         TRUE ~ as.character(round(`Pr(>|t|)`, 3))
       ),
       `Erro Padrão` = round_formatter(`Std. Error`),
@@ -135,16 +135,23 @@ gr_model_to_df <- function(model, caption, label, digits=3) {
       Coeficiente,
       `Erro Padrão`,
       `P-valor`
-    ) %>%
+    ) 
+}
+
+gr_model_to_xtable <- function(model, caption, label, digits=3) {
+  gr_model_to_df(model) %>%
     xtable::xtable(
       caption = caption,
       align = "cc|cc|c",
       label = label,
       digits = digits
     ) %>%
-    print(caption.placement = "top", include.rownames=F, table.placement="H", floating.environment = "modelo")
+    print(
+      caption.placement = "top", include.rownames=F,
+      table.placement="H", floating.environment = "modelo",
+      sanitize.text.function = identity
+    )
 }
-
 
 stepAIC <- stepwiseAIC <- function(..., direction = "both") MASS::stepAIC(..., direction=direction)
 

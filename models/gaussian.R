@@ -13,7 +13,7 @@ lbl_mdl2 <- "tab:gr_selection_interaction"
 gr_mdl1 <- stepwiseAIC(lm(bx_tmp ~ ., data = train_data)) %>% 
     select_gaussian_with_pval(sig.level=.05)
 
-gr_model_to_df(
+gr_model_to_xtable(
     gr_mdl1,
     caption = "Regressão gaussiana com seleção \\textit{stepwise} usando AIC",
     label = lbl_mdl1
@@ -41,7 +41,7 @@ gr_mdl2 <- with(gr_mdl1, {
   })
 
 
-gr_model_to_df(
+gr_model_to_xtable(
     gr_mdl2,
     caption = "Regressão gaussiana com interações",
     label = lbl_mdl2
