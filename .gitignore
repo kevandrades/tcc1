@@ -11,5 +11,5 @@ stats.py
 sklearn_test.py
 .vscode
 .Rhistory
-.Rdata
+.RData
 (renames)) {
