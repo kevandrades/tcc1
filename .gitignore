@@ -10,3 +10,6 @@ with_residuals.csv
 stats.py 
 sklearn_test.py
 .vscode
+.Rhistory
+.Rdata
+(renames)) {
