@@ -1,7 +1,12 @@
 if (!require(pacman)) install.packages("pacman")
 if (!require(MASS)) install.packages("MASS")
 pacman::p_load(data.table, quantreg, purrr, glue, tidyverse, tidymodels)
-options(scipen=6, OutDec=",")
+
+options(
+  scipen=6,
+  OutDec=",",
+  xtable.sanitize.colnames.function = function(x) paste("\\textbf{", x, "}", sep = "")
+)
 
 ft <- fread("data/infame_filter.csv")
 ft[, tramit_tmp := NULL]
@@ -36,6 +41,14 @@ renames <- c(
     "ind25" = "Rec. Interno Pendente"
   )
 
+
+round_formatter <- function(x) case_when(
+  abs(x) > 1 ~ as.character(as.integer(x)),
+  abs(x) < .001 ~ formatC(x, format="e", digits=3),
+  TRUE ~ as.character(round(x, 3))
+)
+
+
 qr_model_to_df <- function(model, add.tau = FALSE) {
   tau <- with(model, tau)
 
@@ -49,6 +62,7 @@ qr_model_to_df <- function(model, add.tau = FALSE) {
   for (name in names(renames)) {
     rows <- str_replace_all(rows, name, renames[name] %>% unname())
   }
+  rownames(tbl) <- rows
 
   tbl <- tbl %>%
     mutate(
@@ -57,22 +71,15 @@ qr_model_to_df <- function(model, add.tau = FALSE) {
         TRUE ~ as.character(round(`Std. Error`, 3))
       ),
       Value = case_when(
-        #Value > 99999 ~ formatC(Value),
-        #TRUE ~ as.character(round(Value, 3))
-        #Value > 99999 ~ Value,
-        #TRUE ~ Value
         abs(Value) < .001 ~ round(Value, 4),
         abs(Value) > 10 ~ round(Value, 0),
         TRUE ~ round(Value, 3)
       ),
       `P-valor` = case_when(
-        `Pr(>|t|)` < 0.001 ~ "<0.001",
+        `Pr(>|t|)` < 0.001 ~ "\approx 0",
         TRUE ~ as.character(round(`Pr(>|t|)`, 3))
       ),
-      Variável = case_when(
-        !str_detect(rownames(tbl), ":") ~ renames[rownames(tbl)],
-        TRUE ~ strsplit(rownames(tbl), ":") %>% lapply(function(x) renames[x] %>% paste(collapse=":")) %>% unlist()
-      )
+      Variável = rows
     ) %>%
     dplyr::select(Variável, Coeficiente = Value, `Erro Padrão` = `Std. Error`, `P-valor`)
   
@@ -95,17 +102,11 @@ qr_model_to_xtable <- function(model, caption, label) {
       caption = caption,
       align = "cc|cc|c",
       label=paste0(label, tau)
-    )
+    ) %>%
+    print(include.rownames=FALSE)
 }
 
 italic_stepwise <- "\\textit{stepwise}"
-
-
-round_formatter <- function(x) case_when(
-  abs(x) > 1 ~ as.character(as.integer(x)),
-  abs(x) < .001 ~ formatC(x, format="e", digits=3),
-  TRUE ~ as.character(round(x, 3))
-)
 
 gr_model_to_df <- function(model, caption, label, digits=3) {
   tbl <- model %>%
