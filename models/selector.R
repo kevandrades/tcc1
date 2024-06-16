@@ -1,6 +1,11 @@
 if (!require(pacman)) install.packages("pacman")
 pacman::p_load(MASS, data.table, quantreg, purrr, glue, tidyverse, tidymodels)
-options(scipen=6, OutDec=",")
+
+options(
+  scipen=6,
+  OutDec=",",
+  xtable.sanitize.colnames.function = function(x) paste("\\textbf{", x, "}", sep = "")
+)
 
 source("models/pval_selector.R")
 source("models/models.R")
