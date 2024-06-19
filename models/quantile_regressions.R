@@ -12,14 +12,25 @@ mdian_mdl2 <- candidate2(tau, mdian_mdl1)
 
 qr_model_to_xtable(
     mdian_mdl1,
-    caption = "Regressão gaussiana com seleção \\textit{stepwise} usando AIC",
-    label = "tab:gr_selection"
+    caption = "Regressão quantílica ($\\tau$ = 0,5)",
+    label = "tab:candidate1_0,5"
 )
+
+qr_model_to_xtable(
+    mdian_mdl2,
+    caption = "Regressão quantílica com transformações ($\\tau$ = 0,5)",
+    label = "tab:candidate2_0,5"
+)
+
 
 data.frame(
     mdl = glue::glue("Modelo {c(1, 2)}"),
     AIC = c(AIC(mdian_mdl1), AIC(mdian_mdl2)),
     BIC = c(bic_estimate(mdian_mdl1), bic_estimate(mdian_mdl2)),
+    MAE = c(
+        mae(with(train_data, bx_tmp), predict(mdian_mdl1, train_data)),
+        mae(with(train_data, bx_tmp), predict(mdian_mdl2, train_data))
+    ),
     Perda = c(with(mdian_mdl1, rho), with(mdian_mdl2, rho))
 ) %>%
 xtable::xtable() %>%
@@ -42,8 +53,8 @@ for (tau in quantiles) {
     mdl1 <- candidate1(tau)
     mdl2 <- candidate2(tau, mdl1)
 
-    confints[[paste(1, tau)]] <- with(mdl1, boot.rq(x, y, tau = tau))
-    confints[[paste(1, tau)]] <- with(mdl2, boot.rq(x, y, tau = tau))
+    confints[[paste(1, tau)]] <- mdl1
+    confints[[paste(1, tau)]] <- mdl2
 
     aic_linear <- c(aic_linear, AIC(mdl1))
     aic_nonlinear <- c(aic_nonlinear, AIC(mdl2))
@@ -167,3 +178,35 @@ final %>%
     print(digits=4, include.rownames=FALSE)
 
 
+
+
+postscript("engelcoef.ps", horizontal = FALSE, width = 6.5, height = 3.5)
+
+plot(mdl1, nrow = 1, ncol = 2)
+
+
+relevants <- c(
+    "sigla_grau_G2",
+    'procedimento_2',
+    'procedimento_6',
+    "ind5",
+    "ind6a", 
+    "ind9",
+    "ind4",
+    "ind10"
+  )
+
+relevants <- c("formato_Físico", "sigla_grau_G2", "procedimento_2",
+"procedimento_6", "ind5", "ind4", "ind9", "ind6a", "ind10")
+grafico_betas <- rq(
+    bx_tmp ~ formato_Físico + sigla_grau_G2 + procedimento_2 + procedimento_6 +
+    ind5 + ind4 + ind9 + ind6a + ind10 +
+    ind9:ind13a + ind8a:ind13a,
+#    as.formula(paste("bx_tmp ~", paste(relevants, collapse=" + "))),
+    tau = quantiles,
+    data = train_data
+) %>% summary(se="boot")
+
+pdf("betas.pdf")
+plot(grafico_betas, mfrow=c(3, 3), main=c("Intercepto", renames[relevants]) %>% str_remove_all("Procedimento -"))
+dev.off()
