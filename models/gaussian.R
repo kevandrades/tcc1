@@ -15,7 +15,7 @@ gr_mdl1 <- stepwiseAIC(lm(bx_tmp ~ ., data = train_data)) %>%
 
 gr_model_to_xtable(
     gr_mdl1,
-    caption = "Regressão gaussiana com seleção \\textit{stepwise} usando AIC",
+    caption = "Regressão gaussiana",
     label = lbl_mdl1
 )
 
@@ -50,10 +50,17 @@ gr_model_to_xtable(
 data.frame(
     Modelo = paste0("\\ref{", c(lbl_mdl1, lbl_mdl2), "}"),
     AIC = c(AIC(gr_mdl1), AIC(gr_mdl2)) %>% prettyNum(big.mark = "."),
-    BIC = c(BIC(gr_mdl1), BIC(gr_mdl2)) %>% prettyNum(big.mark = ".")
+    BIC = c(BIC(gr_mdl1), BIC(gr_mdl2)) %>% prettyNum(big.mark = "."),
+    MAE = c(
+        mae(with(train_data, bx_tmp), predict(gr_mdl1, train_data)),
+        mae(with(train_data, bx_tmp), predict(gr_mdl2, train_data))
+    ),
+    Coeficientes = c(
+        length(coefficients(gr_mdl1)), length(coefficients(gr_mdl2))
+    )
 ) %>%
     xtable::xtable(
-        align = "cc|cc",
+        align = "cc|cccc",
         label = "tab:aic_bic_gaussianos",
         caption = "AIC e BIC para os modelos gaussianos"
     ) %>%
@@ -62,3 +69,29 @@ data.frame(
         caption.placement = "top",
         sanitize.text.function = identity
     )
+
+common_gr <- gr_model_to_df(gr_mdl1) %>%
+    select(Variável, mdl1coef = Coeficiente) %>%
+    arrange(-abs(mdl1coef)) %>%
+    full_join(gr_model_to_df(gr_mdl2) %>%
+    select(Variável, mdl2coef = Coeficiente)) %>%
+    mutate(
+        mdl1coef = case_when(
+            !is.na(mdl1coef) ~ '\\checkmark',
+            TRUE ~ NA
+        ),
+        mdl2coef = case_when(!is.na(mdl2coef) ~ '\\checkmark',
+            TRUE ~ NA),
+        Comum = case_when(!is.na(mdl1coef) & !is.na(mdl2coef) ~ '\\checkmark')
+    ) %>%
+    select(
+        Variável,
+        `Modelo \\ref{tab:gr_selection}` = mdl1coef,
+        `Modelo \\ref{tab:gr_selection_interaction}`= mdl2coef,
+        Comum
+    )
+    
+common_gr %>%
+    df_to_xtable(
+        caption="Coeficientes significativos para cada modelo gaussiano", label='tab:coefs_gauss', align='cc|cc|c',
+        floating.environment="table")
