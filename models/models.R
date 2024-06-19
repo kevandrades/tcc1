@@ -1,6 +1,6 @@
 if (!require(pacman)) install.packages("pacman")
 if (!require(MASS)) install.packages("MASS")
-pacman::p_load(data.table, quantreg, purrr, glue, tidyverse, tidymodels)
+pacman::p_load(data.table, quantreg, purrr, glue, tidyverse, tidymodels, Metrics)
 
 options(
   scipen=6,
@@ -44,16 +44,57 @@ renames <- c(
 
 round_formatter <- function(x) case_when(
   abs(x) > 1 ~ as.character(as.integer(x)),
-  abs(x) < .001 ~ formatC(x, format="e", digits=3),
+  abs(x) < .001 ~ formatC(x, format="e", digits=1),
   TRUE ~ as.character(round(x, 3))
 )
 
+
+to_significative_time <- function(days) {
+  time_metric_plural <- function(metric, singular, plural) {
+    metric <- case_when(
+      floor(abs(metric)) == 1 ~ paste(metric, singular),
+      TRUE ~ paste(metric, plural)
+    )
+    return(metric)
+  }
+
+  days_to_seconds <- function(days) {
+    seconds <- round(days * 24 * 60 * 60, 0)
+
+    time_metric_plural(seconds, "segundo", "segundos")
+  }
+  days_to_hours <- function(days) {
+    hours <- days * 24
+
+    minutes <- round((hours - floor(hours)) * 60, 0)
+
+    return(paste0(floor(hours), "h", minutes, "min"))
+  }
+
+  days_to_metric <- function(days, base, singular, plural, digits) {
+    metric <- time_metric_plural(round(days / base, digits), singular, plural)
+    return(metric)
+  }
+  
+  case_when(
+    abs(days * 24 * 60) < 1 ~ days_to_seconds(days),
+    abs(days) < 1 & abs(days * 24 * 60) >= 1 ~ days_to_hours(days),
+    abs(days) >= 1 & abs(days) <= 30 ~ days_to_metric(days, 1, "dia", "dias", digits=0),
+    abs(days) > 30 & abs(days) < 365 ~ days_to_metric(days, 31, "mês", "meses", digits=1),
+    TRUE ~ days_to_metric(days, 365, "ano", "anos", digits=1)
+  )
+}
 
 qr_model_to_df <- function(model, add.tau = FALSE) {
   tau <- with(model, tau)
 
   tbl <- model %>%
-    summary(se = "boot") %>%
+    (function(mdl) {
+        tryCatch(
+            summary(mdl),
+            error = function(cond) summary(mdl, se="boot")
+        )
+    })  %>%
     coefficients() %>%
     as.data.frame()
   
@@ -66,17 +107,9 @@ qr_model_to_df <- function(model, add.tau = FALSE) {
 
   tbl <- tbl %>%
     mutate(
-      `Std. Error` = case_when(
-        `Std. Error` > 99999 ~ formatC(`Std. Error`),
-        TRUE ~ as.character(round(`Std. Error`, 3))
-      ),
-      Value = case_when(
-        abs(Value) < .001 ~ round(Value, 4),
-        abs(Value) > 10 ~ round(Value, 0),
-        TRUE ~ round(Value, 3)
-      ),
+      `Std. Error` = round_formatter(`Std. Error`),
       `P-valor` = case_when(
-        `Pr(>|t|)` < 0.001 ~ "\approx 0",
+        `Pr(>|t|)` < 0.001 ~ "\\approx 0",
         TRUE ~ as.character(round(`Pr(>|t|)`, 3))
       ),
       Variável = rows
@@ -91,19 +124,27 @@ qr_model_to_df <- function(model, add.tau = FALSE) {
   tbl[]
 }
 
-qr_model_to_xtable <- function(model, caption, label) {
+df_to_xtable <- function(df, caption, label, digits=3, align="cc|cc|c", floating.environment="modelo") {
+  df %>% xtable::xtable(
+      caption = caption,
+      align = align,
+      label = label,
+      digits = digits
+    ) %>%
+    print(
+      caption.placement = "top", include.rownames=F,
+      table.placement="H", floating.environment = floating.environment,
+      sanitize.text.function = identity
+    )
+}
+
+qr_model_to_xtable <- function(model, caption, label, align = "cc|cc|c") {
 
   tau <- with(model, tau)
 
-  caption <- paste(caption, tau)
-
   qr_model_to_df(model) %>%
-    xtable::xtable(
-      caption = caption,
-      align = "cc|cc|c",
-      label=paste0(label, tau)
-    ) %>%
-    print(include.rownames=FALSE, sanitize.text.function = identity)
+  mutate(Coeficiente = to_significative_time(Coeficiente)) %>%
+  df_to_xtable(caption, label, align=align)
 }
 
 italic_stepwise <- "\\textit{stepwise}"
@@ -127,30 +168,20 @@ gr_model_to_df <- function(model) {
         `Pr(>|t|)` < 0.001 ~ "\\approx 0",
         TRUE ~ as.character(round(`Pr(>|t|)`, 3))
       ),
-      `Erro Padrão` = round_formatter(`Std. Error`),
-      Coeficiente = round_formatter(Estimate),
+      `Erro Padrão` = round_formatter(`Std. Error`)
     ) %>%
     dplyr::select(
       Variável,
-      Coeficiente,
+      Coeficiente = Estimate,
       `Erro Padrão`,
       `P-valor`
     ) 
 }
 
-gr_model_to_xtable <- function(model, caption, label, digits=3) {
+gr_model_to_xtable <- function(model, caption, label, digits=3, align = "cc|cc|c") {
   gr_model_to_df(model) %>%
-    xtable::xtable(
-      caption = caption,
-      align = "cc|cc|c",
-      label = label,
-      digits = digits
-    ) %>%
-    print(
-      caption.placement = "top", include.rownames=F,
-      table.placement="H", floating.environment = "modelo",
-      sanitize.text.function = identity
-    )
+  mutate(Coeficiente = to_significative_time(Coeficiente)) %>%
+  df_to_xtable(caption, label, digits, align)
 }
 
 stepAIC <- stepwiseAIC <- function(..., direction = "both") MASS::stepAIC(..., direction=direction)
@@ -161,3 +192,4 @@ bic_estimate <- function(model) {
     
     -2 * as.numeric(lls) + log(nos) * attr(lls, "df")
 }
+
